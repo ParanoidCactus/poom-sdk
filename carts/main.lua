@@ -892,7 +892,7 @@ function attach_plyr(thing,actor,skill)
   return setmetatable({
     update=function(self,...)
       thing.update(self,...)
-      hit_ttl-=1
+      hit_ttl=max(hit_ttl-1)
     end,
     control=function(self)
       wp_y=lerp(wp_y,wp_yoffset,0.3)
@@ -950,8 +950,6 @@ function attach_plyr(thing,actor,skill)
       wp_switch(slot)
     end,
     hud=function(self)
-      printb("♥"..self.health,2,110,12)
-      printb("웃"..self.armor,2,120,3)
       
       local active_wp=wp[wp_slot]
       local frame,light=active_wp.state,self.sector.lightlevel
@@ -963,18 +961,21 @@ function attach_plyr(thing,actor,skill)
       -- draw current (single) frame
       vspr(frame[5],64,128-wp_y,16)
 
+      pal()
       local ammotype=active_wp.actor.ammotype
-      printb(ammotype.icon..self.inventory[ammotype],2,100,8)
+      printb(ammotype.icon..self.inventory[ammotype],106,120,9)
+      printb("♥"..self.health,2,110,12)
+      printb("웃"..self.armor,2,120,3)
 
       -- set "pain" palette (defaults to screen palette if normal)
-      memcpy(0x5f10,0x4400|max(hit_ttl)<<4,16)
+      memcpy(0x5f10,0x4400|hit_ttl<<4,16)
     end,
     hit=function(self,dmg,...)
       -- call parent function
       -- + skill adjustment
       local hp=thing.hit(self,dmg_factor*dmg,...)
-      if hp>5 then
-        hit_ttl=min(hp\2,8)
+      if hp>0 then
+        hit_ttl=min(ceil(hp),15)
         _cam:shake()
       end
     end
@@ -1184,7 +1185,7 @@ function play_state(skill,map_id)
       local cpu=stat(1).."|"..stat(0)
     
       print(cpu,2,3,3)
-      print(cpu,2,2,8)    
+      print(cpu,2,2,15)    
     end
 end
 
@@ -1384,13 +1385,13 @@ function unpack_special(special,line,sectors,actors)
       -- need lock?
       if actorlock then
         local inventory=thing.inventory
-        if not inventory[actorlock] or inventory[actorlock]==0 then
+        if not inventory[actorlock] then -- or inventory[actorlock]==0 then
           _msg="need key"
           -- todo: err sound
           return
         end
         -- consume item
-        inventory[actorlock]=0
+        --inventory[actorlock]=0
       end
 
       -- backup trigger
@@ -1718,7 +1719,7 @@ function unpack_actors()
             local hits,move_dir={},{cos(angle),-sin(angle)}
             intersect_sub_sector(owner.ssector,owner,move_dir,owner.actor.radius/2,1024,hits)    
             -- todo: get from actor properties
-            local h=owner[3]+24
+            local h=owner[3]+32
             for _,hit in ipairs(hits) do
               local fix_move
               if hit.seg then
@@ -1748,7 +1749,7 @@ function unpack_actors()
                 local puffthing=make_thing(puff,pos[1],pos[2],0,angle)
                 -- todo: get height from properties
                 -- todo: improve z setting
-                puffthing[3]=owner[3]+32
+                puffthing[3]=h
                 add(_things,puffthing)
       
                 -- hit thing

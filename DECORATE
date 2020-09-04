@@ -24,16 +24,15 @@ actor BlueArmor : Armor 2019
 
 actor HealthBonus : Health 2014
 {
+  Radius 20
   Amount 1
   MaxAmount 200
   States
   {
   Spawn:
-    BON1 A 6
+    BON1 A 12
 	BON1 B 6
-	BON1 C 6
-	BON1 D 6 
-	BON1 C 6
+	BON1 C 8
 	BON1 B 6
     Loop
   }
@@ -44,7 +43,6 @@ actor ArmorBonus : Armor 2015
   Radius 20
   Height 16
   Amount 1
-  Amount 200
   States
   {
   Spawn:
@@ -76,7 +74,7 @@ actor BlueCard:Key 5
  States
  {
   Spawn:
-   RKEY A -1
+   BKEY A -1
    Stop
  }
 }
@@ -87,7 +85,7 @@ actor YellowCard:Key 6
  States
  {
   Spawn:
-   RKEY A -1
+   GKEY A -1
    Stop
  }
 }
@@ -449,7 +447,7 @@ actor DoomImp: Monster 3001
 		// Melee:
 		Missile:
 			TROO A 8 A_FaceTarget;
-			TROO G 6 A_FireProjectile("DoomImpBall");
+			TROO G 12 A_FireProjectile("DoomImpBall");
 			Goto See
 	  Death:
 		TROO I 8
