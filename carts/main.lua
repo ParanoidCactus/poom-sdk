@@ -593,12 +593,13 @@ function line_of_sight(thing,otherthing,maxdist)
         h>otherside.sector.ceil or 
         h<otherside.sector.floor then
         -- blocking wall
-        return
+        return n
       end 
     end
     -- normal and distance to hit
     return n,d
   end
+  return n
 end
 
 local depth_cls={
@@ -1810,7 +1811,7 @@ function unpack_actors()
           for _,otherthing in pairs(_things) do
             if otherthing!=thing and otherthing.hit then
               local n,d=line_of_sight(thing,otherthing,maxdist)
-              if(n) otherthing:hit(dmg*(1-d/maxdist),n)
+              if(d) otherthing:hit(dmg*(1-d/maxdist),n)
             end
           end
         end
@@ -1838,7 +1839,7 @@ function unpack_actors()
           if(not otherthing) self.target=nil return
           -- in range/visible?
           local n,d=line_of_sight(self,otherthing,1024)
-          if n then
+          if d then
             self.target=otherthing
             -- see
             self:jump_to(2)
@@ -1854,11 +1855,16 @@ function unpack_actors()
           if otherthing and not otherthing.dead then
             -- in range/visible?
             local n,d=line_of_sight(self,otherthing,1024)
-            if n and d<512 then
-              local speed=self.actor.speed
-              self:apply_forces(speed*n[1],speed*n[2])
+            if d and d<512 and (rnd()<0.4) then
               -- missile attack
               self:jump_to(4)
+            else
+              -- zigzag toward target
+              local nx,ny,dir=n[1]*0.5,n[2]*0.5,flr(rnd(2))*2-1
+              local mx,my=ny*dir+nx,nx*-dir+ny
+              local target_angle,speed=atan2(mx,-my),self.actor.speed
+              self.angle=lerp(shortest_angle(target_angle,self.angle),target_angle,0.5)
+              self:apply_forces(speed*mx,speed*my)
             end
             return
           end

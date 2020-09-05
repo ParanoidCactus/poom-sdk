@@ -5,7 +5,7 @@ actor GreenArmor : Armor 2018
   States
   {
   Spawn:
-    ARM1 A -1
+    ARM1 A -1 Bright
     Stop
   }
 }
@@ -17,7 +17,7 @@ actor BlueArmor : Armor 2019
   States
   {
   Spawn:
-    ARM1 A -1
+    ARM1 A -1 Bright
     Stop
   }
 }
@@ -30,10 +30,10 @@ actor HealthBonus : Health 2014
   States
   {
   Spawn:
-    BON1 A 12
-	BON1 B 6
-	BON1 C 8
-	BON1 B 6
+    BON1 A 12 Bright
+	BON1 B 6 Bright
+	BON1 C 8 Bright
+	BON1 B 6 Bright
     Loop
   }
 }
@@ -46,12 +46,12 @@ actor ArmorBonus : Armor 2015
   States
   {
   Spawn:
-    BON2 A 6
-	BON2 B 6
-	BON2 C 6
-	BON2 D 6
-	BON2 C 6
-	BON2 B 6
+    BON2 A 6 Bright
+	BON2 B 6 Bright
+	BON2 C 6 Bright
+	BON2 D 6 Bright
+	BON2 C 6 Bright
+	BON2 B 6 Bright
     Loop
   }
 }
@@ -63,7 +63,7 @@ actor RedCard:Key 13
  States
  {
   Spawn:
-   RKEY A -1
+   RKEY A -1 Bright
    Stop
  }
 }
@@ -74,7 +74,7 @@ actor BlueCard:Key 5
  States
  {
   Spawn:
-   BKEY A -1
+   BKEY A -1 Bright
    Stop
  }
 }
@@ -85,7 +85,7 @@ actor YellowCard:Key 6
  States
  {
   Spawn:
-   GKEY A -1
+   GKEY A -1 Bright
    Stop
  }
 }
@@ -173,7 +173,7 @@ actor PlasmaBall : Projectile 9998
 {
 	Radius 13
 	Height 8
-	Speed 25
+	Speed 40
  	Damage 5
  +MISSILE
  States
@@ -271,7 +271,7 @@ actor Shell : Ammo 2008
 	  States
 	  {
 	  Spawn:
-		SHEL A -1
+		SHEL A -1 Bright
 		Stop
 	  }
 }
@@ -300,7 +300,7 @@ actor PlasmaRifle : Weapon 2004
 			Loop
 		Fire:
 			PLSG A 3 A_FireProjectile("PlasmaBall");
-			PLSG B 20
+			PLSG B 5
 			Goto Ready
 		Ready:
 			PLSG A 1 A_WeaponReady;
@@ -322,8 +322,8 @@ actor ShotGun : Weapon 2001
 		Fire:
 			SHTG A 3 A_Light(160)
 			SHTG A 5 A_FireBullets(2,0,3,3,"BulletPuff");
-			SHTG B 20 A_Light(0)
-			SHTG A 4
+			SHTG B 15 A_Light(0)
+			SHTG A 9
 			Goto Ready
 		Ready:
 			SHTG A 1 A_WeaponReady;
@@ -376,7 +376,7 @@ actor ZombieMan : Monster 3004
   Health 20
   Radius 20
   Height 56
-  Speed 8
+  Speed 6
   PainChance 200
   // DropItem "Clip"
   States
@@ -408,7 +408,7 @@ actor DoomImpBall: Projectile 9995
   Radius 6
   Height 8
   Speed 10
-  FastSpeed 20
+  FastSpeed 15
   Damage 3
   Mass 33
   +RANDOMIZE
@@ -428,10 +428,10 @@ actor DoomImpBall: Projectile 9995
 
 actor DoomImp: Monster 3001
 {
-	Health 60
+	Health 30
 	Radius 20
 	Height 56
-	Speed 8
+	Speed 6
 	PainChance 200
 
 	States
