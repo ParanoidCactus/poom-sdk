@@ -2,6 +2,7 @@ actor GreenArmor : Armor 2018
 {
   Radius 20
   Amount 50
+  PickupSound 61
   States
   {
   Spawn:
@@ -14,6 +15,7 @@ actor BlueArmor : Armor 2019
 {
   Radius 20
   Amount 200
+  PickupSound 61
   States
   {
   Spawn:
@@ -27,6 +29,7 @@ actor HealthBonus : Health 2014
   Radius 20
   Amount 1
   MaxAmount 200
+  PickupSound 61
   States
   {
   Spawn:
@@ -60,6 +63,7 @@ actor ArmorBonus : Armor 2015
 actor RedCard:Key 13
 {
  SlotNumber 1
+ PickupSound 61
  States
  {
   Spawn:
@@ -71,6 +75,7 @@ actor RedCard:Key 13
 actor BlueCard:Key 5
 {
  SlotNumber 2
+ PickupSound 61
  States
  {
   Spawn:
@@ -82,6 +87,7 @@ actor BlueCard:Key 5
 actor YellowCard:Key 6
 {
  SlotNumber 3
+ PickupSound 61
  States
  {
   Spawn:
@@ -129,7 +135,7 @@ actor DeadMarine 15
 actor ExplosiveBarrel 2035
 {
   Health 20
-  Radius 10
+  Radius 20
   Height 42
   +SOLID
   +SHOOTABLE
@@ -142,7 +148,7 @@ actor ExplosiveBarrel 2035
     BAR1 A -1
     Stop
   Death:
-    BAR1 A 10 Bright
+    BAR1 A 10 Bright A_PlaySound(60)
     BEXP C 5 Bright
     BEXP D 5 Bright A_Explode(100, 128);
     BEXP E 10 Bright
@@ -173,7 +179,7 @@ actor PlasmaBall : Projectile 9998
 {
 	Radius 13
 	Height 8
-	Speed 40
+	Speed 60
  	Damage 5
  +MISSILE
  States
@@ -268,6 +274,7 @@ actor Shell : Ammo 2008
 	Amount 4
 	MaxAmount 50
 	Icon 153
+	PickupSound 54
 	  States
 	  {
 	  Spawn:
@@ -293,6 +300,7 @@ actor PlasmaRifle : Weapon 2004
 	AmmoGive 40
 	AmmoType "Cell"
 	SlotNumber 5
+	AttackSound 58
 	States {
 		Spawn:
 			PLAS A 5
@@ -314,6 +322,7 @@ actor ShotGun : Weapon 2001
 	AmmoGive 8
 	AmmoType "Shell"
 	SlotNumber 2
+	AttackSound 56
 	States {
 		Spawn:
 			SHOT A 5
@@ -321,7 +330,7 @@ actor ShotGun : Weapon 2001
 			Loop
 		Fire:
 			SHTG A 3 A_Light(160)
-			SHTG A 5 A_FireBullets(2,0,3,3,"BulletPuff");
+			SHTG A 5 A_FireBullets(10,0,3,7,"BulletPuff");
 			SHTG B 15 A_Light(0)
 			SHTG A 9
 			Goto Ready
@@ -337,6 +346,7 @@ actor ChainGun : Weapon 2002
 	AmmoGive 20
 	AmmoType "Clip"
 	SlotNumber 3
+	AttackSound 55
 	States {
 		Spawn:
 			MGUN A 5
@@ -358,6 +368,7 @@ actor PoomGuy: Player 1
 	Health 100
 	Armor 50
 	Speed 3
+	Height 56
 	StartItem "ShotGun"
 	StartItem "Shell", 50
 	StartItem "PlasmaRifle"
@@ -376,29 +387,29 @@ actor ZombieMan : Monster 3004
   Health 20
   Radius 20
   Height 56
-  Speed 6
+  Speed 8
   PainChance 200
+  AttackSound 55
   // DropItem "Clip"
   States
   {
   Spawn:
-    POSS A 10 A_Look;
+    SPOS A 10 A_Look;
     Loop
   See:
-    POSS A 8
-	POSS B 8 A_Chase;
+    SPOS A 8
+	SPOS B 8 A_Chase;
     Loop
   Missile:
-    POSS E 10 A_FaceTarget;
-    POSS F 8 A_FireBullets(22.5, 0, 1, 9, "BulletPuff");
-    POSS E 8
+    SPOS E 10 A_FaceTarget;
+    SPOS F 8 A_FireBullets(22.5, 0, 1, 9, "BulletPuff");
+    SPOS E 8
     Goto See
   Death:
-    POSS H 5
-    POSS I 5 // A_Scream
-    POSS J 5 //A_NoBlocking
-    POSS K 5
-    POSS L 60
+    SPOS H 5
+    SPOS I 5 // A_Scream
+    SPOS J 5 //A_NoBlocking
+    SPOS K 60
     Stop
   }
 }
@@ -431,9 +442,9 @@ actor DoomImp: Monster 3001
 	Health 30
 	Radius 20
 	Height 56
-	Speed 6
+	Speed 8
 	PainChance 200
-
+	AttackSound 57
 	States
 	{
 		Spawn:

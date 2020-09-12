@@ -577,6 +577,8 @@ function intersect_sub_sector(segs,p,d,tmin,tmax,res,skipthings)
   end
 end
 
+-- returns distance and normal to target (if visible)
+-- note: always return normalized target vector
 function line_of_sight(thing,otherthing,maxdist)
   local n,d=v2_normal(v2_make(thing,otherthing))
   -- in radius?
@@ -864,7 +866,7 @@ end
 
 function attach_plyr(thing,actor,skill)
   local dmg_factor=({0.5,1,1,2})[skill]
-  local speed,da,wp,wp_slot,wp_yoffset,wp_y,hit_ttl,wp_switching=actor.speed,0,thing.weapons,thing.active_slot,0,0,0
+  local bobx,boby,speed,da,wp,wp_slot,wp_yoffset,wp_y,hit_ttl,wp_switching=0,0,actor.speed,0,thing.weapons,thing.active_slot,0,0,0
 
   local function wp_switch(slot)
     if(wp_switching) return
@@ -933,6 +935,9 @@ function attach_plyr(thing,actor,skill)
       -- update weapon vm
       wp[wp_slot].owner=self
       wp[wp_slot]:tick()
+      
+      -- weapon bobing
+      bobx,boby=lerp(bobx,2*da,0.3),lerp(boby,cos(time()*3)*abs(dz)*speed*2,0.2)
     end,
     attach_weapon=function(self,weapon)
       local slot=weapon.actor.slot
@@ -959,8 +964,8 @@ function attach_plyr(thing,actor,skill)
       light=frame[3] and 8 or min((light*15)\1,15)
       memcpy(0x5f00,0x4300|light<<4,16)          
 
-      -- draw current (single) frame
-      vspr(frame[5],64,128-wp_y,16)
+      -- draw current weapon (single) frame      
+      vspr(frame[5],64-bobx,132-wp_y+boby,16)
 
       pal()
       local ammotype=active_wp.actor.ammotype
@@ -1137,7 +1142,9 @@ function make_menu(title,options,fn)
 end
 
 function play_state(skill,map_id)
-  cls()
+  cls()  
+  printb("loading...",44,120,6,5)
+  flip()
 
   -- not already loaded?
   if not _actors then
@@ -1386,13 +1393,12 @@ function unpack_special(special,line,sectors,actors)
       -- need lock?
       if actorlock then
         local inventory=thing.inventory
-        if not inventory[actorlock] then -- or inventory[actorlock]==0 then
+        -- keep key in inventory
+        if not inventory[actorlock] then 
           _msg="need key"
           -- todo: err sound
           return
         end
-        -- consume item
-        --inventory[actorlock]=0
       end
 
       -- backup trigger
@@ -1737,7 +1743,10 @@ function unpack_actors()
                 -- thing hit?
                 local otherthing=hit.thing
                 local otheractor=otherthing.actor
-                if otheractor.flags&0x1>0 then
+                -- within height?
+                if otheractor.flags&0x1>0 and 
+                  h>otherthing[3] and 
+                  h<otherthing[3]+otheractor.height then
                   -- solid actor?
                   fix_move=hit
                 end
@@ -1792,8 +1801,7 @@ function unpack_actors()
         local ammouse,ammotype=item.ammouse,item.ammotype
         return function(weapon)
           if btn(❎) then
-            local owner=weapon.owner
-            local inventory=owner.inventory
+            local inventory=weapon.owner.inventory
             local newqty=inventory[ammotype]-ammouse
             if newqty>=0 then
               inventory[ammotype]=newqty
@@ -1830,9 +1838,7 @@ function unpack_actors()
       -- A_Look
       function()
         return function(self)
-          local targets,otherthing={self.target,_plyr}
-          for i=1,#targets do
-            local ptgt=targets[i]
+          for ptgt in all({self.target,_plyr}) do
             if(ptgt and not ptgt.dead) otherthing=ptgt break
           end
           -- nothing to do?
@@ -1848,21 +1854,21 @@ function unpack_actors()
       end,
       -- A_Chase
       function()
-        local side=1
+        local speed=item.speed
         return function(self)
           -- still active target?
           local otherthing=self.target
           if otherthing and not otherthing.dead then
             -- in range/visible?
             local n,d=line_of_sight(self,otherthing,1024)
-            if d and d<512 and (rnd()<0.4) then
+            if d and d<512 and rnd()<0.4 then
               -- missile attack
               self:jump_to(4)
             else
               -- zigzag toward target
-              local nx,ny,dir=n[1]*0.5,n[2]*0.5,flr(rnd(2))*2-1
+              local nx,ny,dir=n[1]*0.5,n[2]*0.5,rnd{1,-1}
               local mx,my=ny*dir+nx,nx*-dir+ny
-              local target_angle,speed=atan2(mx,-my),self.actor.speed
+              local target_angle=atan2(mx,-my)
               self.angle=lerp(shortest_angle(target_angle,self.angle),target_angle,0.5)
               self:apply_forces(speed*mx,speed*my)
             end
@@ -1885,9 +1891,8 @@ function unpack_actors()
     -- states & sprites
     unpack_array(function()
       local flags=mpeek()
-      local ctrl=flags&0x3
-      -- stop
-      local cmd={jmp=-1}
+      -- default cmd: stop
+      local ctrl,cmd=flags&0x3,{jmp=-1}
       if ctrl==2 then
         -- loop or goto label id   
         cmd={jmp=flr(flags>>4)}
