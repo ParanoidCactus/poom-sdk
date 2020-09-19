@@ -5,7 +5,14 @@ map E1M4 "hANGER"
 	music = 0
 }
 
-map E1M5 "tEST"
+map E1M5 "lAB"
+{
+	levelnum = 1
+	next = "E1M6"
+	music = 0
+}
+
+map E1M6 "tEST"
 {
 	levelnum = 2
 	next = "endgame"

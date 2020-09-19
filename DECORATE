@@ -1,6 +1,20 @@
+actor Trigger 1000
+{
+  States
+  {
+  Spawn:
+    BON2 A -1
+	Stop
+  Death:
+	BON2 A -1
+	Stop
+  }
+}
+
 actor GreenArmor : Armor 2018
 {
   Radius 20
+  Height 16
   Amount 50
   PickupSound 61
   States
@@ -14,6 +28,7 @@ actor GreenArmor : Armor 2018
 actor BlueArmor : Armor 2019
 {
   Radius 20
+  Height 16
   Amount 200
   PickupSound 61
   States
@@ -27,6 +42,7 @@ actor BlueArmor : Armor 2019
 actor HealthBonus : Health 2014
 {
   Radius 20
+  Height 16
   Amount 1
   MaxAmount 200
   PickupSound 61
@@ -62,7 +78,11 @@ actor ArmorBonus : Armor 2015
 
 actor RedCard:Key 13
 {
+ Radius 20
+ Height 16
  SlotNumber 1
+ Amount 1
+ MaxAmount 1
  PickupSound 61
  States
  {
@@ -74,7 +94,11 @@ actor RedCard:Key 13
 
 actor BlueCard:Key 5
 {
+ Radius 20
+ Height 16
  SlotNumber 2
+ Amount 1
+ MaxAmount 1
  PickupSound 61
  States
  {
@@ -86,7 +110,11 @@ actor BlueCard:Key 5
 
 actor YellowCard:Key 6
 {
+ Radius 20
+ Height 16
  SlotNumber 3
+ Amount 1
+ MaxAmount 1
  PickupSound 61
  States
  {
@@ -165,12 +193,12 @@ actor BulletPuff 9999
   States
   {
   Spawn:
-    PUFF A 4 Bright
-    PUFF B 4
+    PUFF A 5 Bright
+    PUFF B 3
     // Intentional fall-through
   Melee:
-    PUFF C 4
-	PUFF D 4
+    PUFF C 3
+	PUFF D 3
     Stop
   }
 }
@@ -179,7 +207,7 @@ actor PlasmaBall : Projectile 9998
 {
 	Radius 13
 	Height 8
-	Speed 60
+	Speed 70
  	Damage 5
  +MISSILE
  States
@@ -299,7 +327,7 @@ actor PlasmaRifle : Weapon 2004
 	AmmoUse 1
 	AmmoGive 40
 	AmmoType "Cell"
-	SlotNumber 5
+	SlotNumber 4
 	AttackSound 58
 	States {
 		Spawn:
@@ -308,7 +336,7 @@ actor PlasmaRifle : Weapon 2004
 			Loop
 		Fire:
 			PLSG A 3 A_FireProjectile("PlasmaBall");
-			PLSG B 5
+			PLSG A 4
 			Goto Ready
 		Ready:
 			PLSG A 1 A_WeaponReady;
@@ -321,7 +349,7 @@ actor ShotGun : Weapon 2001
 	AmmoUse 1
 	AmmoGive 8
 	AmmoType "Shell"
-	SlotNumber 2
+	SlotNumber 1
 	AttackSound 56
 	States {
 		Spawn:
@@ -340,12 +368,55 @@ actor ShotGun : Weapon 2001
 	}
 }
 
+actor Rocket : Projectile 9997
+{
+  Radius 11
+  Height 8
+  Speed 40
+  Damage 10
+  +MISSILE
+  States
+  {
+  Spawn:
+    MISL A 120 Bright
+	// blast on TTL
+  Death:
+    MISL B 1 Bright A_PlaySound(60);
+    MISL B 8 Bright A_Explode(15, 80);
+    MISL C 6 Bright
+    MISL D 4 Bright
+    Stop
+  }
+}
+
+actor RocketLauncher : Weapon 2003
+{
+	AmmoUse 1
+	AmmoGive 2
+	AmmoType "RocketAmmo"
+	SlotNumber 3
+	AttackSound 57
+	States {
+		Spawn:
+			LAUN A 5
+			LAUN A 5 Bright
+			Loop
+		Fire:
+			MISG A 8 A_FireProjectile("Rocket");
+			MISG B 12
+			Goto Ready
+		Ready:
+			MISG A 1 A_WeaponReady;
+			Loop
+	}
+}
+
 actor ChainGun : Weapon 2002
 {
 	AmmoUse 1
 	AmmoGive 20
 	AmmoType "Clip"
-	SlotNumber 3
+	SlotNumber 2
 	AttackSound 55
 	States {
 		Spawn:
@@ -353,9 +424,9 @@ actor ChainGun : Weapon 2002
 			MGUN A 5 Bright
 			Loop
 		Fire:
-			CHGG A 4 A_FireBullets(2,0,1,3,"BulletPuff");
-			CHGG B 4
-			Stop
+			CHGG A 2 A_FireBullets(2,0,1,3,"BulletPuff");
+			CHGG B 3
+			Goto Ready
 		Ready:
 			CHGG A 1 A_WeaponReady;
 			Loop
@@ -364,7 +435,7 @@ actor ChainGun : Weapon 2002
 
 actor PoomGuy: Player 1
 {
-	Radius 32
+	Radius 16
 	Health 100
 	Armor 50
 	Speed 3
@@ -373,7 +444,6 @@ actor PoomGuy: Player 1
 	StartItem "Shell", 50
 	StartItem "PlasmaRifle"
 	StartItem "Cell", 100
-	
 	States
 	{
 		Spawn:
@@ -389,7 +459,6 @@ actor ZombieMan : Monster 3004
   Height 56
   Speed 8
   PainChance 200
-  AttackSound 55
   // DropItem "Clip"
   States
   {
@@ -401,8 +470,9 @@ actor ZombieMan : Monster 3004
 	SPOS B 8 A_Chase;
     Loop
   Missile:
-    SPOS E 10 A_FaceTarget;
-    SPOS F 8 A_FireBullets(22.5, 0, 1, 9, "BulletPuff");
+    SPOS E 9 A_FaceTarget;
+	SPOS E 1 A_PlaySound(55);
+    SPOS F 8 A_FireBullets(0, 0, 1, 9, "BulletPuff"); //22.5
     SPOS E 8
     Goto See
   Death:
@@ -431,7 +501,7 @@ actor DoomImpBall: Projectile 9995
     BAL1 A 120 Bright
     Stop
   Death:
-    BAL1 C 6 Bright
+    BAL1 C 6 Bright A_PlaySound(59);
 	BAL1 E 6 Bright
     Stop
   }
@@ -444,7 +514,6 @@ actor DoomImp: Monster 3001
 	Height 56
 	Speed 8
 	PainChance 200
-	AttackSound 57
 	States
 	{
 		Spawn:
@@ -458,6 +527,7 @@ actor DoomImp: Monster 3001
 		// Melee:
 		Missile:
 			TROO A 8 A_FaceTarget;
+			TROO A 1 A_PlaySound(53);
 			TROO G 12 A_FireProjectile("DoomImpBall");
 			Goto See
 	  Death:
