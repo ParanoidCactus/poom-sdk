@@ -1,9 +1,10 @@
 # POOM SDK
 This repository contains everything required to produce a DOOM-like using PICO8, featuring:
 * Complex geometry (slanted walls, stairs, doors...)
-* Textured floors & walls (inc. transparent walls, animated triggers)
+* Textured floors & walls (inc. animated triggers)
 * Lightning (blinking sectors, light triggers)
 * 8 sided sprites for monsters & props
+* Data driven monsters & props
 * Triggers (opening/closing doors)
 * Keys
 * Multiple weapons (bullets & projectiles)
@@ -57,7 +58,8 @@ ZDoom Wiki (outstanding content folks!)
       --carts-path CARTS_PATH
                             path to carts folder where game is exported
       --mod-name MOD_NAME   game cart name (ex: poom)
-      --map MAP             map name to compile (ex: E1M1)    
+      --map MAP             map name to compile (ex: E1M1)
+      --compress            Enable compression (default: false)  
     ```
 
 ## Compile & Run Poom
@@ -117,6 +119,7 @@ Archive structure:
 * :page_facing_up: PAINPAL pain palette ramp
 * :page_facing_up: DECORATE define actors & behaviors
 * :page_facing_up: TEXTURES defines floor & wall textures
+* :page_facing_up: ZMAPINFO defines map options & sequence
 
 ### My First Level
 
@@ -173,7 +176,7 @@ Select thing ID 1 (e.g. POOM guy!):
 
 ## Sector Specials
 
-The following sector behaviors are supported:
+The following sector "special" behaviors are supported:
 
 | ID | Type | Description |
 |----|:----:|:-----------:|
@@ -181,6 +184,7 @@ The following sector behaviors are supported:
 | 69 | 10 Damage | 10 HP every 15 ticks |
 | 71 | 5 Damage | 5 HP every 15 ticks |
 | 80 | 20 Damage | 20 HP every 15 ticks |
+| 84 | 5 Damage + Scroll East | 5 HP every 15 ticks + floor texture scrolling |
 | 115 | Instadeath | Kills any actor touching sector floor |
 
 ## Line Specials
@@ -200,7 +204,7 @@ The following triggers are supported:
 All wall & floors textures (aka "flats") must be stored as single image. The tileset can be up to 1024x128 pixels.
 
 The toolkit automatically converts tileset into unique 8x8 tiles. 
-> The tileset cannot contain more than 128 unique tiles.
+> The tileset cannot contain more than 127 unique tiles.
 
 Example tileset:
 
@@ -210,7 +214,7 @@ Resulting PICO8 tiles:
 
 ![In Game Tiles](docs/tiles.png)
 
-### Creating New Texture
+### Creating New Textures
 
 Edit the tileset picture using your favorite paint program. Make sure to use *only* colors from the game palette, save file.
 
@@ -241,6 +245,10 @@ Move the texture area over the correct patch location:
 Save.
 
 The texture is now available in level editor!
+
+### Texture Switches
+
+Line triggers (ex: open door button) will automatically switch between textures named xxx_ON/xxx_OFF
 
 ## Palettes
 
@@ -291,20 +299,54 @@ where supported properties are:
 | property | Type | Description |
 |----------|:----:|:-----------:|
 |levelnum  | integer | level sequence. Only required to mark first level |
-|next | string | lump name of next level|
-|music | integer | background music identifier |
+|next | string | lump name of next level. Use ```"endgame"``` to move to game over screen|
+|music | integer | (optional) background music identifier. See [Music & Sound]() section |
+
+Example:
+```C
+map E1M1 "Hangar"
+{
+	levelnum = 1
+	next = "E1M2"
+	music = 0
+}
+
+map E1M2 "Docks"
+{
+  // optional
+	levelnum = 2
+	next = "endgame"
+	music = 12
+}
+```
 
 # Monsters & Props
 
 The DECORATE file describes everything the player will find in the game (monsters, keys, medkits, props...). Each entry is an **actor**. An actor on the map is a **thing** (e.g. a thing always references an actor).
 
 ## Syntax
-```
+```C
 actor classname [ : parentclassname] [doomednum]
 {
   properties
   flags
   states
+}
+```
+
+Example: light pole
+```C
+actor Column 2028
+{
+ Radius 16
+ Height 30
+ +SOLID
+ States
+ {
+	Spawn:
+	 LIGH A -1
+	 Stop
+ }
 }
 ```
 
@@ -400,6 +442,20 @@ actor projectile {
     +MISSILE
   }
 ```
+# Music & Sound
+
+Music and sound is totally modable.
+Sound is stored in:
+```
+carts/music.p8
+```
+This file can be modified as needed. music+sfx sections will be merged with main gamecart at compile time.
+
+## Reserved Sounds
+
+The following sound effects ID are reserved for game engine use:
+- 62: blocked button/door sound
+- 63: door & platform open/close
 
 
 

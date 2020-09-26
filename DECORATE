@@ -1,16 +1,3 @@
-actor Trigger 1000
-{
-  States
-  {
-  Spawn:
-    BON2 A -1
-	Stop
-  Death:
-	BON2 A -1
-	Stop
-  }
-}
-
 actor GreenArmor : Armor 2018
 {
   Radius 20
@@ -57,6 +44,21 @@ actor HealthBonus : Health 2014
   }
 }
 
+actor MedKit : Health 2016
+{
+  Radius 20
+  Height 16
+  Amount 15
+  MaxAmount 100
+  PickupSound 61
+  States
+  {
+  Spawn:
+    STIM A -1 Bright
+    Loop
+  }
+}
+
 actor ArmorBonus : Armor 2015
 {
   Radius 20
@@ -84,6 +86,8 @@ actor RedCard:Key 13
  Amount 1
  MaxAmount 1
  PickupSound 61
+ HUDColor 13
+ Icon 17
  States
  {
   Spawn:
@@ -100,6 +104,8 @@ actor BlueCard:Key 5
  Amount 1
  MaxAmount 1
  PickupSound 61
+ HUDColor 15
+ Icon 17
  States
  {
   Spawn:
@@ -116,6 +122,8 @@ actor YellowCard:Key 6
  Amount 1
  MaxAmount 1
  PickupSound 61
+ HUDColor 11
+ Icon 17
  States
  {
   Spawn:
@@ -438,7 +446,7 @@ actor PoomGuy: Player 1
 	Radius 16
 	Health 100
 	Armor 50
-	Speed 3
+	Speed 4
 	Height 56
 	StartItem "ShotGun"
 	StartItem "Shell", 50
@@ -480,6 +488,38 @@ actor ZombieMan : Monster 3004
     SPOS I 5 // A_Scream
     SPOS J 5 //A_NoBlocking
     SPOS K 60
+    Stop
+  }
+}
+
+actor Sergeant : Monster 3005
+{
+  Health 20
+  Radius 20
+  Height 56
+  Speed 8
+  PainChance 200
+  // DropItem "Clip"
+  States
+  {
+  Spawn:
+    POSS A 10 A_Look;
+    Loop
+  See:
+    POSS A 8
+	POSS B 8 A_Chase;
+    Loop
+  Missile:
+    POSS E 9 A_FaceTarget;
+	POSS E 1 A_PlaySound(55);
+    POSS F 8 A_FireBullets(0, 0, 1, 9, "BulletPuff"); //22.5
+    POSS E 8
+    Goto See
+  Death:
+    POSS H 5
+    POSS I 5 // A_Scream
+    POSS J 5 //A_NoBlocking
+    POSS K 60
     Stop
   }
 }
@@ -538,53 +578,37 @@ actor DoomImp: Monster 3001
 	}
 }
 
-actor BaronOfHell: Monster 3003
-{
-	Health 1000
-	Radius 24
-	Height 64
-	Mass 1000
-	Speed 8
-	PainChance 50
-	
-	States
-	{
-		Spawn:
-			BOSS A -1
-			Stop
-	}
-}
 
 actor Cyberdemon: Monster 16
 {
-	Health 4000
+	Health 500
 	Radius 40
 	Height 110
-	Mass 1000
+	Mass 100
 	Speed 16
 	PainChance 20
 	
 	States
 	{
 		Spawn:
-			CYBR A 4 A_FaceTarget(0.2);
+			CYBR A 4
 			Loop
-	}
-}
-
-actor Cacodemon: Monster 3005
-{
-	Health 400
-	Radius 31
-	Height 56
-	Mass 400
-	Speed 8
-	PainChance 128
-	
-	States
-	{
-		Spawn:
-			HEAD C -1
-			Stop
+		See:
+			CYBR A 3
+			CYBR B 2 
+			CYBR B 1 A_Chase;
+			Loop
+		// Melee:
+		//Missile:
+		//	CYBR A 8 A_FaceTarget;
+		//	CYBR A 1 A_PlaySound(53);
+		//	CYBR F 12 A_FireProjectile("DoomImpBall");
+		//	Goto See
+		//Death:
+		//	CYBR J 8
+		//	CYBR K 6
+		//	CYBR L 6
+		//	CYBR P 60
+		//	Stop
 	}
 }
