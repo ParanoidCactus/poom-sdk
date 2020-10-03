@@ -1,4 +1,4 @@
-actor GreenArmor : Armor 2018
+actor BlueArmor : Armor 2018
 {
   Radius 20
   Height 16
@@ -12,7 +12,21 @@ actor GreenArmor : Armor 2018
   }
 }
 
-actor BlueArmor : Armor 2019
+actor RedArmor : Armor 2019
+{
+  Radius 20
+  Height 16
+  Amount 100
+  PickupSound 61
+  States
+  {
+  Spawn:
+    ARM3 A -1 Bright
+    Stop
+  }
+}
+
+actor GoldArmor : Armor 2020
 {
   Radius 20
   Height 16
@@ -21,7 +35,7 @@ actor BlueArmor : Armor 2019
   States
   {
   Spawn:
-    ARM1 A -1 Bright
+    ARM2 A -1 Bright
     Stop
   }
 }
@@ -322,12 +336,37 @@ actor Shell : Ammo 2008
 actor ShellBox : Shell 2049
 {
   Amount 20
+  MaxAmount 50
+  PickupSound 54
   States
   {
   Spawn:
     SBOX A -1
     Stop
   }
+}
+
+actor Fist : Weapon 2000
+{
+	AmmoUse 1
+	AmmoGive 8
+	AmmoType "Shell"
+	SlotNumber 1
+	AttackSound 56
+	States {
+		Spawn:
+			SHOT A 5
+			Loop
+		Fire:
+			SHTG A 3 A_Light(160)
+			SHTG A 5 A_FireBullets(10,0,3,7,"BulletPuff");
+			SHTG B 15 A_Light(0)
+			SHTG A 9
+			Goto Ready
+		Ready:
+			SHTG A 1 A_WeaponReady;
+			Loop
+	}
 }
 
 actor PlasmaRifle : Weapon 2004
@@ -494,8 +533,8 @@ actor ZombieMan : Monster 3004
 
 actor Sergeant : Monster 3005
 {
-  Health 20
-  Radius 20
+  Health 30
+  Radius 32
   Height 56
   Speed 8
   PainChance 200
@@ -549,8 +588,8 @@ actor DoomImpBall: Projectile 9995
 
 actor DoomImp: Monster 3001
 {
-	Health 30
-	Radius 20
+	Health 40
+	Radius 32
 	Height 56
 	Speed 8
 	PainChance 200
@@ -560,20 +599,22 @@ actor DoomImp: Monster 3001
 			TROO A 10 A_Look;
 			Loop
 		See:
-			TROO A 3
-			TROO B 2 
+			TROO A 5
+			TROO B 4 
 			TROO B 1 A_Chase;
 			Loop
 		// Melee:
 		Missile:
-			TROO A 8 A_FaceTarget;
-			TROO A 1 A_PlaySound(53);
-			TROO G 12 A_FireProjectile("DoomImpBall");
+			TROO B 8 A_FaceTarget;
+			TROO B 1 A_PlaySound(53);
+			TROO E 12 A_FireProjectile("DoomImpBall");
+			TROO B 4
 			Goto See
 	  Death:
-		TROO I 8
-		TROO K 6
-		TROO M 60
+		TROO H 5
+		TROO I 5
+		TROO J 5
+		TROO K 60
 		Stop
 	}
 }

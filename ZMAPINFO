@@ -1,20 +1,20 @@
 map E1M4 "hANGER"
 {
 	levelnum = 1
-	next = "E1M5"
+	next = "E1M2"
 	music = 0
 }
 
-map E1M5 "lAB"
-{
-	levelnum = 1
-	next = "E1M6"
-	music = 0
-}
-
-map E1M6 "tEST"
+map E1M2 "lAB"
 {
 	levelnum = 2
+	next = "E2M1"
+	music = 0
+}
+
+map E2M1 "cRYPT"
+{
+	levelnum = 3
 	next = "endgame"
 	music = 0
 }

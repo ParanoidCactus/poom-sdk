@@ -5,7 +5,7 @@ __lua__
 -- globals
 local _bsp,_cam,_plyr,_things,_sprite_cache,_actors
 local _onoff_textures={}
-local _ambientlight,_znear,_zfar,_ammo_factor,_intersectid,_msg=0,8,854,1,0
+local _ambientlight,_ammo_factor,_intersectid,_msg=0,1,0
 local _ui_funcs,_wp_ui={circfill,rectfill,print},split"1,1,63,90,12,2,0,1,2,19,86,49,94,0,1,3,⬅️,52,88,5,0,1,3,shotgun,21,88,11,0,2,2,77,86,111,94,0,2,3,➡️,68,88,5,0,2,3,chaingun,79,88,11,0,3,2,50,68,76,76,0,3,3,⬆️,60,80,5,0,3,3,rocket,52,70,11,0,4,2,50,104,76,112,0,4,3,⬇️,60,96,5,0,4,3,plasma,52,106,11,0"
 
 --local k_far,k_near=0,2
@@ -47,8 +47,8 @@ function make_camera()
         -- x2: fov
         local ax,az=(m1*x+m3*z+m4)<<1,m9*x+m11*z+m12
         -- todo: optimize?
-        if(az>_znear) code=0
-        if(az>_zfar) code|=1
+        if(az>8) code=0
+        if(az>854) code|=1
         if(ax>az) code|=4
         if(-ax>az) code|=8
         outcode&=code
@@ -79,8 +79,10 @@ end
 -- coroutine helpers
 local _futures={}
 -- registers a new coroutine
+-- returns a handle to the coroutine
+-- used to cancel a coroutine
 function do_async(fn)
-  add(_futures,cocreate(fn))
+  return add(_futures,{cocreate(fn)})
 end
 -- wait until timer
 function wait_async(t,fn)
@@ -129,13 +131,11 @@ end
 function vspr(frame,sx,sy,scale,flipx)
   -- faster equivalent to: palt(0,false)
   poke(0x5f00,0)
-  local w,xoffset,yoffset,tc,tiles=unpack(frame)
+  local xscale,w,xoffset,yoffset,tc,tiles=scale,unpack(frame)
   palt(tc,true)
-  local sw,xscale=xoffset*scale,flipx and -scale or scale
-  sx-=sw
-  -- todo: bug?
-  -- if(flipx) sx+=sw  
-	sy-=yoffset*scale
+  if(flipx) xoffset,xscale=1-xoffset,-scale
+  sx-=xoffset*scale
+  sy-=yoffset*scale
 	for i,tile in pairs(tiles) do
     local dx,dy,ssx,ssy=sx+(i%w)*xscale,sy+(i\w)*scale,_sprite_cache:use(tile)
     -- scale sub-pixel fix 
@@ -278,11 +278,9 @@ function polyfill(v,xoffset,yoffset,tex,light)
       x0+=dx
       w0+=dw
     end		
-    -- "exploit" known bug: local decl is faster than assigns unless a sum(!!)
-    -- to be removed when: https://www.lexaloffle.com/bbs/?tid=39090 is fixed	
-    x0=_x1+0
-    y0=_y1+0
-    w0=_w1+0
+    x0=_x1
+    y0=_y1
+    w0=_w1
   end
 end
 
@@ -352,7 +350,7 @@ function draw_walls(segs,v_cache,light)
             local ot=y0-otop*w0
             tline(x,ct,x,ot,u0/w0,(ct-t)/w0+yoffset,0,1/w0)
             -- new window top
-            t=ot+0
+            t=ot
             ct=ot\1+1
           end
           -- bottom wall side between current sector and back sector     
@@ -362,7 +360,7 @@ function draw_walls(segs,v_cache,light)
             local cob=ob\1+1
             tline(x,cob,x,b,u0/w0,(cob-ob)/w0,0,1/w0)
             -- new window bottom
-            b=ob+0
+            b=ob
           end
   
           -- middle wall?
@@ -378,11 +376,9 @@ function draw_walls(segs,v_cache,light)
       end
     end
     v0=v1
-    -- "exploit" known bug: local decl is faster than assigns unless a sum(!!)
-    -- to be removed when: https://www.lexaloffle.com/bbs/?tid=39090 is fixed
-    x0=_x1+0
-    y0=y1+0
-    w0=w1+0
+    x0=_x1
+    y0=y1
+    w0=w1
   end
 end
 
@@ -400,11 +396,11 @@ function draw_flats(v_cache,segs,things)
       local ax,az=
         m1*x+m3*z+m4,
         m9*x+m11*z+m12
-      if(az>_znear) code=0
-      if(az>_zfar) code|=1
+      if(az>8) code=0
+      if(az>854) code|=1
       -- fov adjustment
-      if(-2*ax>az) code|=4
-      if(2*ax>az) code|=8
+      if(-ax<<1>az) code|=4
+      if(ax<<1>az) code|=8
       
       local w=128/az
       v={ax,m8,az,outcode=code,u=x,v=z,x=63.5+ax*w,y=63.5-m8*w,w=w}
@@ -418,7 +414,7 @@ function draw_flats(v_cache,segs,things)
   end
   -- out of screen?
   if outcode==0 then
-    if(nearclip!=0) verts=z_poly_clip(_znear,verts)
+    if(nearclip!=0) verts=z_poly_clip(verts)
     if #verts>2 then
       local sector=segs.sector
       local light=max(sector.lightlevel,_ambientlight)
@@ -440,7 +436,7 @@ function draw_flats(v_cache,segs,things)
           local x,y=thing[1],thing[2]
           local ax,az=m1*x+m3*y+m4,m9*x+m11*y+m12
           -- todo: take radius into account 
-          if az>_znear and az<_zfar and ax<az and -ax<az then
+          if az>8 and az<854 and ax<az and -ax<az then
             -- h: thing offset+cam offset
             local w,h=128/az,thing[3]+m8
             local x,y=63.5+ax*w,63.5-h*w
@@ -470,7 +466,7 @@ function draw_flats(v_cache,segs,things)
         local x,y=thing[1],thing[2]
         local ax,az=m1*x+m3*y+m4,m9*x+m11*y+m12
         -- todo: take radius into account 
-        if az>_znear and az<_zfar and ax<az and -ax<az then
+        if az>8 and az<854 and ax<az and -ax<az then
           -- h: thing offset+cam offset
           local w,h=128/az,thing[3]+m8
           local x,y=63.5+ax*w,63.5-h*w
@@ -649,9 +645,43 @@ function intersect_sub_sector(segs,p,d,tmin,tmax,radius,res,skipthings)
   end
 end
 
+-- scan attack (e.g. will hit anything in range)
+function hitscan_attack(owner,angle,range,dmg,puff)
+  local h,hits,move_dir=owner[3]+32,{},{cos(angle),-sin(angle)}
+  _intersectid+=1
+  intersect_sub_sector(owner.ssector,owner,move_dir,owner.actor.radius/2,range,0,hits)    
+  for _,hit in ipairs(hits) do
+    local otherthing,fix_move=hit.thing
+    if hit.seg then
+      fix_move=intersect_line(hit.seg,h,0,0,true) and hit
+    elseif otherthing!=owner and intersect_thing(otherthing,h,0) then
+      fix_move=hit
+    end
+
+    if fix_move then
+      -- actual hit position
+      local pos={owner[1],owner[2],h}
+      v2_add(pos,move_dir,fix_move.ti)
+      local puffthing=make_thing(puff,pos[1],pos[2],0,angle)
+      -- todo: get height from properties
+      -- todo: improve z setting
+      puffthing[3]=h
+      add_thing(puffthing)
+
+      -- hit thing
+      if(otherthing and otherthing.hit) otherthing:hit(dmg,move_dir,owner)
+      return
+    end
+  end
+end
+
 -- returns distance and normal to target (if visible)
 function line_of_sight(thing,otherthing,maxdist)
+  local pvs,id=thing.ssector.pvs,otherthing.ssector.id
+
   local n,d=v2_normal(v2_make(thing,otherthing))
+  if(band(pvs[id\32],0x0.0001<<(id&31))==0) return n
+
   -- in radius?
   d=max(d-thing.actor.radius)
   if d<maxdist then
@@ -659,7 +689,7 @@ function line_of_sight(thing,otherthing,maxdist)
     local h,hits,blocking=thing[3]+24,{}
     _intersectid+=1
     intersect_sub_sector(thing.ssector,thing,n,0,d,0,hits,true)
-    for _,hit in pairs(hits) do
+    for _,hit in ipairs(hits) do
       if intersect_line(hit.seg,h,0,0,true) then
         return n
       end
@@ -670,7 +700,7 @@ function line_of_sight(thing,otherthing,maxdist)
   return n
 end
 
-function make_thing(actor,x,y,z,angle)
+function make_thing(actor,x,y,z,angle,special)
    -- all sub-sectors that thing touches
   -- used for rendering and collision detection
   local pos={x,y}
@@ -683,7 +713,8 @@ function make_thing(actor,x,y,z,angle)
     angle=angle,
     sector=ss.sector,
     ssector=ss,
-    subs={}
+    subs={},
+    trigger=special
   })
   
   if actor.flags&0x2>0 then
@@ -792,7 +823,7 @@ function with_physic(thing)
               -- death state
               self:jump_to(5)
               -- hit thing
-              if(otherthing and otherthing.hit) otherthing:hit(actor.damage,move_dir,self.owner)
+              if(otherthing and otherthing.hit) otherthing:hit((1+rnd(7))*actor.damage,move_dir,self.owner)
               -- stop at first wall/thing
               break
             else
@@ -878,6 +909,8 @@ function with_health(thing)
     self.dead=true
     -- lock state
     dead=true
+    -- any special?
+    if(self.trigger) self:trigger()
     -- death state
     self:jump_to(5)
   end
@@ -953,7 +986,9 @@ function attach_plyr(thing,actor,skill)
       if wp_hud then
         wp_hud=not btn(6)
         for i=1,4 do
-          if btnp(i-1) then
+          if btnp(🅾️) then
+            wp_hud=wp_switch(10)
+          elseif btnp(i-1) then
             -- only switch if we have the weapon and it's not the current weapon
             wp_hud,btns=(wp_slot!=i and wp[i]) and wp_switch(i) or nil,{}
           end
@@ -1027,7 +1062,7 @@ function attach_plyr(thing,actor,skill)
 
       pal()
       local ammotype=active_wp.actor.ammotype
-      printb(ammotype.icon..self.inventory[ammotype],106,120,9)
+      if(ammotype) printb(ammotype.icon..self.inventory[ammotype],106,120,9)
       printb("♥"..self.health,2,110,12)
       printb("웃"..self.armor,2,120,3)
 
@@ -1045,6 +1080,8 @@ function attach_plyr(thing,actor,skill)
             uit[chr((i-1)%7+97)]=_wp_ui[i]
             if(i%7==0 and wp[uit.a])_ui_funcs[uit.b](uit.c,uit.d,uit.e,uit.f,uit.g)
         end
+        -- fist selection entry
+        print("🅾️",60,88,5)
       end
 
       -- set "pain" palette (defaults to screen palette if normal)
@@ -1102,6 +1139,9 @@ function next_state(fn,...)
 end
 
 function play_state()
+  -- stop music (eg. restart game)
+  music(-1)
+
   -- actor sprites
   if not _actors then
     -- not already loaded?
@@ -1110,15 +1150,17 @@ function play_state()
   -- fix garbage sprites when loading 2nd map
   _sprite_cache:clear()  
 
+  -- memory cleanup before loading a level
+  _things,_plyr,_bsp={}
   -- ammo scaling factor
   _ammo_factor=split"2,1,1,1"[_skill]
-  _bsp,thingdefs=decompress(mod_name.."_"..mod_map,_maps_cart[_map_id],_maps_offset[_map_id],unpack_map,_skill,_actors)
+  local bsp,thingdefs=decompress(mod_name.."_"..mod_map,_maps_cart[_map_id],_maps_offset[_map_id],unpack_map,_skill,_actors)
+  _bsp=bsp
 
   -- restore main data cart
   reload()
 
   -- attach behaviors to things
-  _things={}
   for _,thingdef in pairs(thingdefs) do 
     local thing,actor=make_thing(unpack(thingdef))
     -- get direct access to player
@@ -1162,7 +1204,7 @@ function play_state()
 end
 
 function gameover_state(pos,angle,target,h)
-  local target_angle=angle
+  local idle_ttl,target_angle=90,angle
   return
     -- update
     function()
@@ -1174,12 +1216,16 @@ function gameover_state(pos,angle,target,h)
         angle=lerp(shortest_angle(target_angle,angle),target_angle,0.08)
       end
       _cam:track(pos,angle,pos[3]+h)
-
-      if btnp(🅾️) then
-        -- back to title cart        
-        load(mod_name.."_0.p8")
-      elseif btnp(❎) then
-        next_state(slicefade_state,play_state)
+      
+      idle_ttl-=1
+      -- avoid immediate button hit
+      if idle_ttl<0 then
+        if btnp(🅾️) then
+          -- back to title cart        
+          load(mod_name.."_0.p8")
+        elseif btnp(❎) then
+          next_state(slicefade_state,play_state)
+        end
       end
     end,
     -- draw
@@ -1242,12 +1288,14 @@ function _update()
 
   -- any futures?
   local tmp={}
-	for k,f in pairs(_futures) do
-		local cs=costatus(f)
-		if cs=="suspended" then
+  for k,async_handle in pairs(_futures) do
+    local f=async_handle[1]
+    -- still active?
+    if f and costatus(f)=="suspended" then
+      -- todo: remove assert for release
       assert(coresume(f))
-      add(tmp,f)
-		end
+      add(tmp,async_handle)
+    end
   end
   _futures=tmp
 
@@ -1287,12 +1335,12 @@ local function v_clip(v0,v1,t)
     }
 end
 
-function z_poly_clip(znear,v)
+function z_poly_clip(v)
   local res,v0={},v[#v]
-	local d0=v0[3]-znear
+	local d0=v0[3]-8
 	for i=1,#v do
 		local v1=v[i]
-		local d1=v1[3]-znear
+		local d1=v1[3]-8
 		if d1>0 then
       if d0<=0 then
         res[#res+1]=v_clip(v0,v1,d0/(d0-d1))
@@ -1340,135 +1388,75 @@ function unpack_bbox()
   return {l,b,l,t,r,t,r,b}
 end
 
-function unpack_special(special,line,sectors,actors)
-  local function switch_texture()
-    line[true].midtex=_onoff_textures[line[true].midtex]
-  end
-  -- helper function - handles lock & repeat
-  local function trigger_async(fn,actorlock)
-    return function(thing)
-      -- need lock?
-      if actorlock then
-        -- keep key in inventory (for reusable locked doors)
-        if not thing.inventory[actorlock] then 
-          _msg="need key"
-          -- play "err" sound
-          sfx(62)
-          return
-        end
-      end
-
-      -- backup trigger
-      local trigger=line.trigger
-      -- avoid reentrancy
-      line.trigger=nil
-      --
-      switch_texture()
-      do_async(function()
-        fn()
-        -- unlock (if repeatable)
-        if(line.flags&32>0) line.trigger=trigger switch_texture()
-      end)
-    end
-  end
-
-  if special==202 then
+function unpack_special(special,trigger_async,sectors,actors)
+  local function unpack_moving_sectors(what)
     -- sectors
-    local doors={}
+    local moving_sectors={}
     -- backup heights
     unpack_array(function()
-      local sector=sectors[unpack_variant()]
-      -- safe for replay init values
-      sector.close=sector.close or sector.floor
-      sector.open=sector.open or sector.ceil
-      add(doors,sector)
+      local sector=sectors[unpack_variant()]      
+      -- "stable" state = always floor
+      sector.init=sector.floor
+      sector.target=unpack_fixed()
+      add(moving_sectors,sector)
     end)
-    local speed,kind,delay,lock=mpeek(),mpeek(),mpeek(),unpack_variant()
-    local function move_async(to,speed)
+    -- door speed: https://zdoom.org/wiki/Map_translator#Constants
+    -- speed is signed (]-32;32[)
+    local moving_speed,delay,lock=(mpeek()-128)/8,unpack_variant(),unpack_variant()
+    local function move_sector_async(sector,to,speed,no_crush)
       -- play open/close sound
       sfx(63)
 
-      -- take current values
-      local ceils={}
-      for _,sector in pairs(doors) do
-        ceils[sector]=sector.ceil
-      end
-      -- lerp from current values
-      for i=0,speed do
-        for _,sector in pairs(doors) do
-          if to=="close" then
-            while sector.things>0 do
-              -- wait 1 sec if door is blocked
-              wait_async(30)
-              sfx(63)
-            end
+      local hmax=sector[to]
+      while true do
+        -- avoid crushing things
+        if no_crush then
+          while sector.things>0 do
+            -- wait 1 sec if door is blocked
+            wait_async(30)
+            sfx(63)
           end
-          sector.ceil=lerp(ceils[sector],sector[to],i/speed)
+        end          
+        local h=sector[what]+speed
+        if (speed>0 and h>hmax) or (speed<0 and h<hmax) then          
+          sector[what]=hmax
+          break
         end
+        sector[what]=h
         yield()
       end
     end
     -- init
-    if kind&2==0 then
-      move_async("close",1)
-    else
-      move_async("open",1)
-    end
-    return trigger_async(function()  
-      if kind&2==0 then
-        move_async("open",speed)
-      else
-        move_async("close",speed)
+    if special==13 then
+      -- close doors
+      for _,sector in pairs(moving_sectors) do
+        sector.ceil=sector.floor
       end
-      if kind==0 then
-        wait_async(delay)
-        move_async("close",speed)
-      elseif kind==2 then
-        wait_async(delay)
-        move_async("open",speed)
+    end
+
+    return trigger_async(function()
+      -- move to target
+      for _,sector in pairs(moving_sectors) do
+        -- kill any previous moving handler
+        if(sector.action) sector.action[1]=nil
+        sector.action=do_async(function()
+          move_sector_async(sector,"target",moving_speed,special==13 and moving_speed<0)
+          if delay>0 then
+            wait_async(delay)
+            -- 
+            move_sector_async(sector,"init",-moving_speed,special==13 and moving_speed>0)
+          end
+        end)
       end
     end,
     -- lock id 0 is no lock
-    actors[lock])  
-  elseif special==64 then
-    -- todo: unify with doors??
-    -- elevator raise
-    local sector,target_floor,speed=sectors[unpack_variant()],unpack_fixed(),128-mpeek()
-    -- backup initial height
-    local orig_floor=sector.floor
-    local function move_async(from,to)
-      -- todo: configurable wait time
-      wait_async(30)
-      -- play open/close sound
-      sfx(63)
-      for i=0,speed do
-        sector.floor=lerp(from,to,smoothstep(i/speed))
-        yield()
-      end
-      -- avoid drift
-      sector.floor=to
-    end
-    return function()
-      -- avoid reentrancy
-      if(sector.moving) return
-      -- lock (from any other trigger)
-      sector.moving=true
-      do_async(function()
-        move_async(orig_floor,target_floor)
-        move_async(target_floor,orig_floor)
-        sector.moving=nil
-      end)
-    end
-  elseif special==80 then
-    local arg0,arg1=mpeek(),mpeek()
-    return trigger_async(function()
-      -- sfx(0)
-      -- todo: trigger action
+    actors[lock]) 
+  end
 
-      do_async(function()
-        
-      end)
-    end)
+  if special==13 then
+    return unpack_moving_sectors("ceil")
+  elseif special==64 then
+    return unpack_moving_sectors("floor")
   elseif special==112 then
     -- sectors
     local target_sectors={}
@@ -1555,8 +1543,8 @@ function unpack_actors()
           -- ****************** 
           -- decorate vm engine       
           -- goto vm label
-          jump_to=function(self,label)
-            i,ticks=state_labels[label],-2
+          jump_to=function(self,label,fallback)
+            i,ticks=state_labels[label] or (fallback and state_labels[fallback]),-2
           end,
           -- vm update
           tick=function(self)
@@ -1619,6 +1607,8 @@ function unpack_actors()
       {0x0.2000,"attacksound"},
       {0x0.4000,"hudcolor"},
       {0x0.8000,"deathsound"},
+      {0x1,"meleerange"},
+      {0x2,"maxtargetrange"},
       {0x0.0400,"",function()
         -- 
         unpack_array(function()
@@ -1692,7 +1682,7 @@ function unpack_actors()
       -- map label id to state command line number
       state_labels[mpeek()]=mpeek()
     end)
-
+    
     -- actors functions
     local function_factory={
       -- A_FireBullets
@@ -1703,33 +1693,7 @@ function unpack_actors()
           owner=owner.owner or owner
           for i=1,bullets do
             local angle=owner.angle+(rnd(2*xspread)-xspread)/360
-            -- todo: get from actor properties
-            local h,hits,move_dir=owner[3]+32,{},{cos(angle),-sin(angle)}
-            _intersectid+=1
-            intersect_sub_sector(owner.ssector,owner,move_dir,owner.actor.radius/2,1024,0,hits)    
-            for _,hit in ipairs(hits) do
-              local otherthing,fix_move=hit.thing
-              if hit.seg then
-                fix_move=intersect_line(hit.seg,h,0,0,true) and hit
-              elseif otherthing!=owner and intersect_thing(otherthing,h,0) then
-                fix_move=hit
-              end
-    
-              if fix_move then
-                -- actual hit position
-                local pos={owner[1],owner[2],h}
-                v2_add(pos,move_dir,fix_move.ti)
-                local puffthing=make_thing(puff,pos[1],pos[2],0,angle)
-                -- todo: get height from properties
-                -- todo: improve z setting
-                puffthing[3]=h
-                add_thing(puffthing)
-      
-                -- hit thing
-                if(otherthing and otherthing.hit) otherthing:hit(dmg,move_dir,owner)
-                break
-              end
-            end
+            hitscan_attack(owner,angle,1024,dmg,puff)
           end
         end
       end,
@@ -1762,10 +1726,11 @@ function unpack_actors()
       function()
         return function(weapon)
           if not wp_hud and btn(❎) then
-            local inventory=weapon.owner.inventory
-            local newqty=inventory[item.ammotype]-item.ammouse
+            local inventory,ammotype,newqty=weapon.owner.inventory,item.ammotype,0
+            -- handle "fist" (eg weapon without ammotype)
+            if(ammotype) newqty=inventory[item.ammotype]-item.ammouse
             if newqty>=0 then
-              inventory[item.ammotype]=newqty
+              if(ammotype) inventory[item.ammotype]=newqty
               -- play attack sound
               if(item.attacksound) sfx(item.attacksound)
               -- fire state
@@ -1776,13 +1741,13 @@ function unpack_actors()
       end,
       -- A_Explode
       function()
-        local dmg,maxdist=unpack_variant(),unpack_variant()
+        local dmg,maxrange=unpack_variant(),unpack_variant()
         return function(thing)
           -- todo: optimize lookup!!!
           for _,otherthing in pairs(_things) do
             if otherthing!=thing and otherthing.hit then
-              local n,d=line_of_sight(thing,otherthing,maxdist)
-              if(d) otherthing:hit(dmg*(1-d/maxdist),n)
+              local n,d=line_of_sight(thing,otherthing,maxrange)
+              if(d) otherthing:hit(dmg*(1-d/maxrange),n)
             end
           end
         end
@@ -1817,16 +1782,21 @@ function unpack_actors()
       end,
       -- A_Chase
       function()
-        local speed=item.speed
+        local speed,range,maxrange=item.speed,item.meleerange or 64,item.maxtargetrange or 1024 
         return function(self)
           -- still active target?
           local otherthing=self.target
           if otherthing and not otherthing.dead then
             -- in range/visible?
-            local n,d=line_of_sight(self,otherthing,1024)
-            if d and d<512 and rnd()<0.4 then
-              -- missile attack
-              self:jump_to(4)
+            local n,d=line_of_sight(self,otherthing,maxrange)
+            if d and rnd()<0.4 then
+              if d<range then
+                -- close range attack (if any)
+                self:jump_to(3,4)
+              else
+                -- ranged attack
+                self:jump_to(4)
+              end
             else
               -- zigzag toward target
               local nx,ny,dir=n[1]*0.5,n[2]*0.5,rnd{1,-1}
@@ -1839,7 +1809,7 @@ function unpack_actors()
           end
           -- lost/dead?
           self.target=nil
-          -- spawn
+          -- idle state
           self:jump_to(0)
         end
       end,
@@ -1849,7 +1819,16 @@ function unpack_actors()
         return function()
           _ambientlight=light
         end
-      end
+      end,
+      -- A_MeleeAttack
+      function()
+        local dmg,puff=mpeek(),unpack_actor_ref()
+        return function(owner)
+          -- find 'real' owner
+          owner=owner.owner or owner
+          hitscan_attack(owner,owner.angle,owner.meleerange or 64,dmg,puff)
+        end
+      end      
     }
     -- states & sprites
     unpack_array(function()
@@ -1952,10 +1931,51 @@ function unpack_map(skill,actors)
       -- sides
       [true]=sides[unpack_variant()],
       [false]=sides[unpack_variant()],
-      flags=mpeek()}
+      flags=mpeek()}      
     -- special actions
     if line.flags&0x2>0 then
-      line.trigger=unpack_special(mpeek(),line,sectors,actors)
+      local function switch_texture()
+        line[true].midtex=_onoff_textures[line[true].midtex]
+      end             
+      line.trigger=unpack_special(
+        mpeek(),
+        -- helper function - handles lock & repeat
+        function(fn,actorlock)
+          return function(thing)
+            -- need lock?
+            if actorlock then
+              -- keep key in inventory (for reusable locked doors)
+              if not thing.inventory[actorlock] then 
+                _msg="need key"
+                -- play "err" sound
+                sfx(62)
+                return
+              end
+            end
+
+            -- backup trigger
+            local trigger=line.trigger
+            -- avoid reentrancy
+            line.trigger=nil
+            --
+            switch_texture()
+            -- do the action *outside* of a coroutine
+            fn()
+            -- repeatable?
+            if line.flags&32>0 then
+              do_async(function()
+                -- avoid player hitting trigger/button right away
+                wait_async(30)
+                -- unlock (if repeatable)
+                line.trigger=trigger 
+                -- restore visual
+                switch_texture()
+              end)
+            end
+          end
+        end,
+        sectors,
+        actors)
     end
     add(lines,line)
   end)
@@ -2066,10 +2086,10 @@ function unpack_map(skill,actors)
 
   -- things
   local things={}
-  unpack_array(function()
+  local function unpack_thing()
     local flags,id,x,y=mpeek(),unpack_variant(),unpack_fixed(),unpack_fixed()
     if flags&(0x10<<(skill-1))!=0 then
-      add(things,{
+      return add(things,{
         -- link to underlying actor
         actors[id],
         -- coordinates
@@ -2077,10 +2097,31 @@ function unpack_map(skill,actors)
         -- height
         0,
         -- angle
-        (flags&0xf)/8,
+        (flags&0xf)/8
       })
     end
-  end)
+  end
+  -- standard things
+  unpack_array(unpack_thing)
+
+  -- things with special behaviors
+  unpack_array(function()
+    local thing=unpack_thing()
+    if thing then
+      add(thing,unpack_special(
+        mpeek(),
+        function(fn)
+          return function(self)
+            -- avoid reentrancy
+            self.trigger=nil
+            --
+            fn()
+          end
+        end,
+        sectors,
+        actors))        
+    end
+  end)    
 
   -- restore main cart
   return nodes[#nodes],things
