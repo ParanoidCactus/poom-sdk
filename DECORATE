@@ -177,7 +177,17 @@ actor DeadMarine 15
   States
   {
   Spawn:
-    PLAY N -1
+    SPOS K -1
+    Stop
+  }
+}
+
+actor DeadImp 14
+{
+  States
+  {
+  Spawn:
+    TROO K -1
     Stop
   }
 }
@@ -221,6 +231,25 @@ actor BulletPuff 9999
   Melee:
     PUFF C 3
 	PUFF D 3
+    Stop
+  }
+}
+
+actor BloodPuff 9996
+{
+  +NOGRAVITY
+  +RANDOMIZE
+  VSpeed 1
+  Mass 5
+  States
+  {
+  Spawn:
+    BLOD A 8 Bright
+    BLOD B 4 Bright
+    // Intentional fall-through
+  Melee:
+    BLOD C 4 Bright
+	BLOD C 2
     Stop
   }
 }
@@ -351,7 +380,7 @@ actor Fist : Weapon 2000
 	AmmoUse 1
 	AmmoGive 8
 	AmmoType "Shell"
-	SlotNumber 1
+	SlotNumber 5
 	AttackSound 56
 	States {
 		Spawn:
@@ -406,7 +435,7 @@ actor ShotGun : Weapon 2001
 		Fire:
 			SHTG A 3 A_Light(160)
 			SHTG A 5 A_FireBullets(10,0,3,7,"BulletPuff");
-			SHTG B 15 A_Light(0)
+			SHTG D 15 A_Light(0)
 			SHTG A 9
 			Goto Ready
 		Ready:
@@ -531,38 +560,6 @@ actor ZombieMan : Monster 3004
   }
 }
 
-actor Sergeant : Monster 3005
-{
-  Health 30
-  Radius 32
-  Height 56
-  Speed 8
-  PainChance 200
-  // DropItem "Clip"
-  States
-  {
-  Spawn:
-    POSS A 10 A_Look;
-    Loop
-  See:
-    POSS A 8
-	POSS B 8 A_Chase;
-    Loop
-  Missile:
-    POSS E 9 A_FaceTarget;
-	POSS E 1 A_PlaySound(55);
-    POSS F 8 A_FireBullets(0, 0, 1, 9, "BulletPuff"); //22.5
-    POSS E 8
-    Goto See
-  Death:
-    POSS H 5
-    POSS I 5 // A_Scream
-    POSS J 5 //A_NoBlocking
-    POSS K 60
-    Stop
-  }
-}
-
 actor DoomImpBall: Projectile 9995
 {
   Radius 6
@@ -588,11 +585,12 @@ actor DoomImpBall: Projectile 9995
 
 actor DoomImp: Monster 3001
 {
-	Health 40
+	Health 50
 	Radius 32
 	Height 56
 	Speed 8
 	PainChance 200
+	MeleeRange 64
 	States
 	{
 		Spawn:
@@ -603,7 +601,12 @@ actor DoomImp: Monster 3001
 			TROO B 4 
 			TROO B 1 A_Chase;
 			Loop
-		// Melee:
+		Melee:
+			TROO B 8 A_FaceTarget;
+			TROO E 1 A_PlaySound(51);
+			TROO E 12 A_MeleeAttack(5, "BloodPuff");
+			TROO B 4
+			Goto See
 		Missile:
 			TROO B 8 A_FaceTarget;
 			TROO B 1 A_PlaySound(53);
@@ -619,6 +622,68 @@ actor DoomImp: Monster 3001
 	}
 }
 
+actor CacodemonBall: Projectile 9995
+{
+  Radius 6
+  Height 8
+  Speed 15
+  FastSpeed 20
+  Damage 6
+  Mass 33
+  +RANDOMIZE
+  +MISSILE
+  +NOGRAVITY
+  States
+  {
+  Spawn:
+    BAL2 A 3 Bright
+	BAL2 B 3 Bright
+    Loop
+  Death:
+    BAL1 C 6 Bright A_PlaySound(59);
+	BAL1 E 6 Bright
+    Stop
+  }
+}
+
+actor Cacodemon: Monster 3002
+{
+	Health 80
+	Radius 32
+	Height 56
+	Speed 6
+	PainChance 200
+	MeleeRange 64
+	States
+	{
+		Spawn:
+			HEAD A 10 A_Look;
+			Loop
+		See:
+			HEAD A 9
+			HEAD A 1 A_Chase;
+			Loop
+		Melee:
+			HEAD A 8 A_FaceTarget;
+			HEAD B 8
+			HEAD B 1 A_MeleeAttack(10, "BloodPuff");
+			HEAD A 12 A_PlaySound(51);
+			Goto See
+		Missile:
+			HEAD A 8 A_FaceTarget;
+			HEAD E 2 A_PlaySound(53);
+			HEAD F 6 Bright A_FireProjectile("CacodemonBall");
+			HEAD B 4
+			HEAD A 8
+			Goto See
+	  Death:
+		HEAD H 5
+		HEAD I 5
+		HEAD J 5
+		HEAD K 60
+		Stop
+	}
+}
 
 actor Cyberdemon: Monster 16
 {
