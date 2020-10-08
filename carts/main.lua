@@ -147,7 +147,7 @@ function vspr(frame,sx,sy,scale,flipx)
 end
 
 -- https://github.com/luapower/linkedlist/blob/master/linkedlist.lua
-function make_sprite_cache(tiles,maxlen)
+function make_sprite_cache(tiles)
 	local len,index,first,last=0,{}
 
 	local function remove(t)
@@ -183,10 +183,10 @@ function make_sprite_cache(tiles,maxlen)
 				remove(entry)
 			else
 				-- allocate a new 16x16 entry
-				-- todo: optimize
-				local sx,sy=(len<<4)&127,64+(((len<<4)\128)<<4)
-				-- list too large?
-				if len+1>maxlen then
+				local sx,sy=(len<<4)&127,64+((len\8)<<4)
+        -- list too large?
+        -- 32: cache max entry size
+				if len>31 then
 					local old=remove(first)
 					-- reuse cache entry
 					sx,sy,index[old.id]=old[1],old[2]
@@ -250,9 +250,7 @@ end
 function polyfill(v,xoffset,yoffset,tex,light)
   poke4(0x5f38,tex)
 
-  local ca,sa,cx,cy,cz=_cam.u,_cam.v,(_plyr[1]>>4)+xoffset,(-_cam.m[4]-yoffset)<<3,_plyr[2]>>4
-
-  local v0,spans,pal0=v[#v],{}
+  local v0,spans,ca,sa,cx,cy,cz,pal0=v[#v],{},_cam.u,_cam.v,(_plyr[1]>>4)+xoffset,(-_cam.m[4]-yoffset)<<3,_plyr[2]>>4
   local x0,w0=v0.x,v0.w
   local y0=v0.y-yoffset*w0
   for i,v1 in ipairs(v) do
@@ -261,8 +259,7 @@ function polyfill(v,xoffset,yoffset,tex,light)
     local _x1,_y1,_w1=x1,y1,w1
     if(y0>y1) x1=x0 y1=y0 w1=w0 x0=_x1 y0=_y1 w0=_w1
     local dy=y1-y0
-    local dx,dw=(x1-x0)/dy,(w1-w0)/dy
-    local cy0=y0\1+1
+    local cy0,dx,dw=y0\1+1,(x1-x0)/dy,(w1-w0)/dy
     local sy=cy0-y0
     if(y0<0) x0-=y0*dx w0-=y0*dw cy0=0 sy=0
     x0+=sy*dx
@@ -436,7 +433,7 @@ function draw_flats(v_cache,segs,things)
     if(nearclip!=0) verts=z_poly_clip(verts)
     if #verts>2 then
       local sector=segs.sector
-      local light=max(sector.lightlevel,_ambientlight)
+      local light,things=max(sector.lightlevel,_ambientlight),setmetatable({},depth_cls)
       -- not visible?
       if(sector.floor+m8<0) polyfill(verts,sector.tx or 0,sector.floor,sector.floortex,light)
       if(sector.ceil+m8>0) polyfill(verts,0,sector.ceil,sector.ceiltex,light)
@@ -445,7 +442,6 @@ function draw_flats(v_cache,segs,things)
       draw_walls(segs,verts,light)
 
       -- draw things (if any) in this convex space
-      local things=setmetatable({},depth_cls)
       for thing,_ in pairs(segs.things) do
         -- todo: cache thing projection
         -- done: not sure if faster (90% of things are single sub-sector...)
@@ -487,12 +483,10 @@ function draw_flats(v_cache,segs,things)
         -- todo: take radius into account 
         if az>8 and az<854 and ax<az and -ax<az then
           -- h: thing offset+cam offset
-          local w,h=128/az,thing[3]+m8
-          local x,y=63.5+ax*w,63.5-h*w
           -- get start of linked list
-          local head=things[1]
+          local w,h,head=128/az,thing[3]+m8,things[1]
           -- empty list case
-          local prev=head
+          local x,y,prev=63.5+ax*w,63.5-h*w,head
           while head and head[1]<w do
             -- swap/advance
             prev,head=head,head.next
@@ -513,8 +507,9 @@ function draw_flats(v_cache,segs,things)
         if(pal0!=pal1) memcpy(0x5f00,0x4300|min(pal1,15)<<4,16) pal0=pal1            
         -- pick side (if any)
         if sides>1 then
-          local angle=((atan2(-thing[1]+_plyr[1],thing[2]-_plyr[2])-thing.angle+0.0625)%1+1)%1
+          local angle=((atan2(_plyr[1]-thing[1],thing[2]-_plyr[2])-thing.angle+0.0625)%1+1)%1
           side=(sides*angle)\1
+          -- get flip bit from mask
           flipx=flipx&(1<<side)!=0
         else
           flipx=nil
@@ -640,22 +635,16 @@ function intersect_sub_sector(segs,p,d,tmin,tmax,radius,res,skipthings)
       local d=v2_dot({s0[2],s0[3]},pt)-s0[4]
       -- extended segment
       if d>=-radius and d<s0[5]+radius then
-        -- moving away
-        if denom<0 then
-          if(t>tmin) tmin=t
-          --if(tmin>tmax) return
-        else -- moving in
-          local dist_b=s0[8]-v2_dot(n,{px+_tmax*dx,py+_tmax*dy})
-          if s0.line and (dist_a<radius or dist_b<radius) then
-            add(res,{ti=t,t=mid((dist_a-1/32)/(dist_a-dist_b),0,1),seg=s0,n=n})
-          end
-          -- exact segment
-          if d>=0 and d<s0[5] then
-            if(t<tmax) tmax=t othersector=s0.partner
-            ---if(tmax<tmin) return 
-          end
+        local dist_b,inseg=s0[8]-v2_dot(n,{px+_tmax*dx,py+_tmax*dy}),d>=0 and d<s0[5]
+        -- exact segment?
+        if inseg then
+          if(t<tmax) tmax=t othersector=s0.partner
+          -- if(tmax<tmin) return 
         end
-      end 
+        if s0.line and (dist_a<radius or dist_b<radius) then
+          add(res,{ti=t,t=mid(dist_a/(dist_a-dist_b),0,1),dist=dist_a<radius and inseg and (radius-dist_a),seg=s0,n=n})
+        end
+      end
     end
   end
 
@@ -680,7 +669,7 @@ function hitscan_attack(owner,angle,range,dmg,puff)
 
     if fix_move then
       -- actual hit position
-      local pos={owner[1],owner[2],h}
+      local pos={owner[1],owner[2]}
       v2_add(pos,move_dir,fix_move.ti)
       local puffthing=make_thing(puff,pos[1],pos[2],0,angle)
       -- todo: get height from properties
@@ -725,7 +714,7 @@ function make_thing(actor,x,y,z,angle,special)
   -- default height & sector specs
   local ss=find_sub_sector(_bsp,{x,y})
   -- attach instance properties to new thing
-  local thing=actor:attach({
+  local thing=actor:attach{
     -- z: altitude
     x,y,ss.sector.floor,
     angle=angle,
@@ -733,7 +722,7 @@ function make_thing(actor,x,y,z,angle,special)
     ssector=ss,
     subs={},
     trigger=special
-  })
+  }
   
   if actor.flags&0x2>0 then
     -- shootable
@@ -834,7 +823,7 @@ function with_physic(thing)
           if fix_move then
             if is_missile then
               -- fix position & velocity
-              v2_add(self,move_dir,fix_move.t)
+              v2_add(self,move_dir,fix_move.ti)
               velocity={0,0,0}
               -- explosion sound (if any)
               if(actor.deathsound) sfx(actor.deathsound)
@@ -851,6 +840,10 @@ function with_physic(thing)
               if fix<0 then
                 -- apply impulse (e.g. fix velocity)
                 v2_add(velocity,n,fix)
+              end
+              -- too close to wall?
+              if fix_move.dist then
+                v2_add(self,n,-fix_move.dist)
               end
             end
           end
@@ -885,8 +878,6 @@ function with_physic(thing)
               -- use special?
               if btnp(🅾️) then
                 ldef.trigger(self)
-              else
-                _msg="press 🅾️ to activate"
               end
               -- trigger/message only closest hit
               break
@@ -1000,7 +991,7 @@ function attach_plyr(thing,actor,skill)
 
       if wp_hud then
         wp_hud=not btn(6)
-        for i,k in pairs({0,3,1,2,4}) do
+        for i,k in pairs{0,3,1,2,4} do
           if btnp(k) then
             -- only switch if we have the weapon and it's not the current weapon
             wp_hud,btns=(wp_slot!=i and wp[i]) and wp_switch(i),{}
@@ -1066,7 +1057,7 @@ function attach_plyr(thing,actor,skill)
       local active_wp=wp[wp_slot]
       local frame,light=active_wp.state,self.sector.lightlevel
       
-      -- sector light affects weapon sprite
+      -- sector light affects weapon sprite (unless bright)
       light=frame[3] and 8 or min((light*15)\1,15)
       memcpy(0x5f00,0x4300|light<<4,16)          
 
@@ -1088,6 +1079,10 @@ function attach_plyr(thing,actor,skill)
 
       -- display weapon selection hud
       if wp_hud then
+        -- structure:
+        -- slot number (or -1)
+        -- function
+        -- args (packed as a comma-separated string)
         for i=1,#_wp_wheel,3 do
           local slot=_wp_wheel[i]
           if(slot==-1 or wp[slot]) _ENV[_wp_wheel[i+1]](unpack(split(_wp_wheel[i+2])))
@@ -1101,6 +1096,7 @@ function attach_plyr(thing,actor,skill)
       -- call parent function
       -- + skill adjustment
       local hp=thing.hit(self,dmg_factor*dmg,...)
+      -- hp can be null if actor is dead
       if hp and hp>0 then
         hit_ttl=min(ceil(hp),15)
       end
@@ -1114,7 +1110,7 @@ function attach_plyr(thing,actor,skill)
           local actor=actors[dget(i+2)]
           if actor then
             -- create thing
-            self:attach_weapon(actor:attach({}))
+            self:attach_weapon(actor:attach{})
             -- don't restore counters for ammoless weapons (ex: fist)
             if(actor.ammotype) self.inventory[actor.ammotype]=dget(i+7)
           end
@@ -1240,7 +1236,7 @@ function play_state()
 end
 
 function gameover_state(pos,angle,target,h)
-  local idle_ttl,target_angle=90,angle
+  local idle_ttl,target_angle=30,angle
   return
     -- update
     function()
@@ -1256,19 +1252,20 @@ function gameover_state(pos,angle,target,h)
       idle_ttl-=1
       -- avoid immediate button hit
       if idle_ttl<0 then
-        if btnp(🅾️) then
+        load(mod_name.."_0.p8",nil,_skill..",".._map_id..",1")
+        --if btnp(🅾️) then
           -- back to title cart        
-          load(mod_name.."_0.p8")
-        elseif btnp(❎) then
-          next_state(slicefade_state,play_state)
-        end
+        --  load(mod_name.."_0.p8",nil,"gameover")
+        --elseif btnp(❎) then
+        --  next_state(slicefade_state,play_state)
+        --end
       end
     end,
     -- draw
     function()
       draw_bsp()
 
-      if(time()%4<2) printb("you died - ❎ restart/🅾️ menu",8,120,12)
+      --if(time()%4<2) printb("you died - ❎ restart/🅾️ menu",8,120,12)
 
       -- set screen palette
       -- pal({140,1,139,3,4,132,133,7,6,134,5,8,2,9,10},1)
@@ -1305,14 +1302,22 @@ function slicefade_state(...)
     end
 end
 
+function mainmenu()
+  load(mod_name.."_0.p8")
+end
+
 -->8
 -- game loop
 function _init()
   cartdata(mod_name)
 
+  menuitem(1,"main menu",mainmenu)
+  
   -- launch params
   local p=split(stat(6))
   _skill,_map_id=tonum(p[1]) or 2,tonum(p[2]) or 1
+  -- record max level reached so far
+  if(_map_id>dget(32)) dset(32,_map_id)
 
   next_state(play_state)
 end
@@ -1337,8 +1342,9 @@ function _update()
   end
   _futures=tmp
 
+  -- decay flash light
+  _ambientlight*=0.8
   -- keep world running
-  _msg=nil
   for _,thing in pairs(_things) do
     if(thing.control) thing:control()
     thing:tick()
@@ -1506,10 +1512,16 @@ function unpack_special(sectors,actors)
       -- save player's state
       _plyr:save()
 
+      --_map_id+=1
+      -- end game?
+      --if _map_id>#_maps_group then
+        -- records best skill completed
+      --  if(_skill>dget(33)) dset(33,_skill)
+      --  load(mod_name_.."0.p8",nil,"endgame")
+      --end
       -- load next map
-      -- todo: handle end game
-      _map_id+=1
-      load(_maps_group[_map_id]..".p8",nil,_skill..",".._map_id)
+      --load(_maps_group[_map_id]..".p8",nil,_skill..",".._map_id)
+      load(mod_name.."_0.p8",nil,_skill..",".._map_id..",2")
     end
   end
 end
@@ -1648,7 +1660,7 @@ function unpack_actors()
     -- A_Look
     function()
       return function(self)
-        for ptgt in all({self.target,_plyr}) do
+        for ptgt in all{self.target,_plyr} do
           if(ptgt and not ptgt.dead) otherthing=ptgt break
         end
         -- nothing to do?
@@ -1798,7 +1810,7 @@ function unpack_actors()
           -- weapon
           weapons=weapons or {}
           -- create a new "dummy" thing
-          local weapon_thing=startitem:attach({})
+          local weapon_thing=startitem:attach{}
           weapons[startitem.slot]=weapon_thing
           -- force 'ready' state
           weapon_thing:jump_to(7)
@@ -1896,7 +1908,7 @@ function unpack_actors()
     -- register
     actors[id]=item
   end)
-  return actors,make_sprite_cache(tiles,32)
+  return actors,make_sprite_cache(tiles)
 end
 
 -- linedefs
@@ -1979,9 +1991,16 @@ function unpack_map(skill,actors)
           -- need lock?
           -- note: keep key in inventory (for reusable locked doors)
           if actorlock and not thing.inventory[actorlock] then 
-            _msg="need key"
-            -- play "err" sound
-            sfx(62)
+            -- avoid too much messages/reentrancy
+            if not line.locked then
+              line.locked=do_async(function()
+                _msg="locked"
+                wait_async(15)
+                _msg,line.locked=nil
+              end)
+              -- play "err" sound
+              sfx(62)
+            end
             return
           end
 

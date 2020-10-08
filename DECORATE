@@ -220,7 +220,6 @@ actor BulletPuff 9999
 {
   +NOGRAVITY
   +RANDOMIZE
-  VSpeed 1
   Mass 5
   States
   {
@@ -239,7 +238,6 @@ actor BloodPuff 9996
 {
   +NOGRAVITY
   +RANDOMIZE
-  VSpeed 1
   Mass 5
   States
   {
@@ -259,7 +257,7 @@ actor PlasmaBall : Projectile 9998
 	Radius 13
 	Height 8
 	Speed 70
- 	Damage 5
+ 	Damage 3
  +MISSILE
  States
 	{
@@ -278,6 +276,7 @@ actor Cell : Ammo 2047
 {
 	Amount 20
 	MaxAmount 300
+	PickupSound 54
 	// zap pico8 character
 	Icon 150
 	  States
@@ -303,6 +302,7 @@ actor RocketAmmo : Ammo 2010
 {
 	Amount 1
 	MaxAmount 50
+	PickupSound 54
 	// 
 	Icon 26
 	  States
@@ -377,11 +377,9 @@ actor ShellBox : Shell 2049
 
 actor Fist : Weapon 2000
 {
-	AmmoUse 1
-	AmmoGive 8
-	AmmoType "Shell"
 	SlotNumber 5
 	AttackSound 56
+	HudLabel "fIST"
 	States {
 		Spawn:
 			SHOT A 5
@@ -405,6 +403,8 @@ actor PlasmaRifle : Weapon 2004
 	AmmoType "Cell"
 	SlotNumber 4
 	AttackSound 58
+	HudLabel "pLASMA rIFLE"
+	PickupSound 54
 	States {
 		Spawn:
 			PLAS A 5
@@ -427,6 +427,8 @@ actor ShotGun : Weapon 2001
 	AmmoType "Shell"
 	SlotNumber 1
 	AttackSound 56
+	HudLabel "sHOTGUN"
+	PickupSound 54
 	States {
 		Spawn:
 			SHOT A 5
@@ -470,8 +472,10 @@ actor RocketLauncher : Weapon 2003
 	AmmoUse 1
 	AmmoGive 2
 	AmmoType "RocketAmmo"
+	HudLabel "rOCKET lAUNCHER"
 	SlotNumber 3
 	AttackSound 57
+	PickupSound 54
 	States {
 		Spawn:
 			LAUN A 5
@@ -492,8 +496,10 @@ actor ChainGun : Weapon 2002
 	AmmoUse 1
 	AmmoGive 20
 	AmmoType "Clip"
+	HudLabel "cHAINGUN"
 	SlotNumber 2
 	AttackSound 55
+	PickupSound 54
 	States {
 		Spawn:
 			MGUN A 5
@@ -516,10 +522,9 @@ actor PoomGuy: Player 1
 	Armor 50
 	Speed 4
 	Height 56
+	StartItem "Fist"
 	StartItem "ShotGun"
 	StartItem "Shell", 50
-	StartItem "PlasmaRifle"
-	StartItem "Cell", 100
 	States
 	{
 		Spawn:
