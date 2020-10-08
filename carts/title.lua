@@ -34,8 +34,8 @@ function _init()
   local p=split(stat(6))
   menus[2].sel,menus[1].sel,endstate=tonum(p[1]) or 2,tonum(p[2]) or 1,tonum(p[3]) or 0
 
-  -- end of game
   gfx_str=gfx
+  -- todo: if player died (endstate==1) display a 'try again' menu
   if endstate==2 then
     if menus[1].sel<#_maps_label then
       -- load next level
@@ -62,6 +62,8 @@ function _init()
 end
 
 function _update60()
+  -- todo: add slidefade transition
+
   anm_ttl=(anm_ttl+1)%48
   if load_ttl then
     load_ttl-=1
@@ -86,6 +88,7 @@ function _update60()
     end
     if btnp(4) or btnp(5) then
       if(menu_i>0)sfx(1)
+      endstate=0
       menu_i+=1
       if menu_i>#menus then
         load_ttl=30
@@ -95,6 +98,13 @@ function _update60()
 end
 
 function _draw()
+  if endstate==1 then
+    printb("game over",47,96,15,0)
+    -- retain game palette
+    memcpy(0x5f10,0x4400,16)
+    return
+  end
+
   cls()
   memcpy(0x6000,0x4e00,0x1000)
   sspr(0,0,128,64,0,64)
@@ -102,9 +112,7 @@ function _draw()
     local s="eNTERING "..menus[1][2][menus[1].sel]
     printb(s,63-#s*2,80,15)
   elseif menu_i==0 then
-    if endstate==1 then
-      printb("game over",47,96,15)
-    elseif endstate==2 then
+    if endstate==2 then
       printb("victory",49,96,15)
     else
       printb("press 🅾️",47,121,15)
