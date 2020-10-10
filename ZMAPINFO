@@ -15,6 +15,13 @@ map E1M2 "lAB"
 map E2M1 "cRYPT"
 {
 	levelnum = 3
-	next = "endgame"
+	next = "E2M2"
 	music = 0
+}
+
+map E2M2 "mAELSTROM"
+{
+	levelnum = 4
+	next = "endgame"
+	music = 21
 }

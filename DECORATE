@@ -146,7 +146,7 @@ actor YellowCard:Key 6
  }
 }
 
-actor Column 2028
+actor Torch 2028
 {
  Radius 16
  Height 30
@@ -154,8 +154,10 @@ actor Column 2028
  States
  {
 	Spawn:
-	 COLU A -1
-	 Stop
+	 SMRT A 3
+	 SMRT B 3
+	 SMRT C 3
+	 Loop
  }
 }
 
