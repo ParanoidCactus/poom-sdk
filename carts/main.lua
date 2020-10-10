@@ -1210,7 +1210,7 @@ function play_state()
   _cam=make_camera()
 
   -- start level music (if any)
-  music(_maps_music[map_id],0,14)
+  music(_maps_music[_map_id],0,14)
 
   return 
     -- update
@@ -1312,7 +1312,7 @@ function _init()
   cartdata(mod_name)
 
   menuitem(1,"main menu",mainmenu)
-  
+
   -- launch params
   local p=split(stat(6))
   _skill,_map_id=tonum(p[1]) or 2,tonum(p[2]) or 1
