@@ -1073,7 +1073,7 @@ function attach_plyr(thing,actor,skill)
       -- keys
       for item,amount in pairs(self.inventory) do
         if amount>0 and item.slot then
-          printb(item.icon,106,120-item.slot*10,item.hudcolor)
+          printb(item.icon,98+item.slot*8,111,item.hudcolor)
         end
       end
 
