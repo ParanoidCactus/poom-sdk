@@ -295,7 +295,7 @@ actor Cell : Ammo 2047
 	  States
 	  {
 	  Spawn:
-		CELL A -1
+		CELP A -1
 		Stop
 	  }
 }
@@ -303,6 +303,7 @@ actor Cell : Ammo 2047
 actor CellPack : Cell 17
 {
   Amount 100
+  PickupSound 54
   States
   {
   Spawn:
@@ -329,6 +330,7 @@ actor RocketAmmo : Ammo 2010
 actor RocketBox : RocketAmmo 2046
 {
   Amount 5
+  PickupSound 54
   States
   {
   Spawn:
@@ -339,20 +341,10 @@ actor RocketBox : RocketAmmo 2046
 
 actor Clip : Ammo 2007
 {
-	Amount 50
+	Amount 20
 	MaxAmount 200
 	Icon 152
-  States
-  {
-  Spawn:
-    CLIP A -1
-    Stop
-  }
-}
-
-actor ClipBox : Clip 2048
-{
-  Amount 50
+	PickupSound 54
   States
   {
   Spawn:
@@ -373,19 +365,6 @@ actor Shell : Ammo 2008
 		SHEL A -1 Bright
 		Stop
 	  }
-}
-
-actor ShellBox : Shell 2049
-{
-  Amount 20
-  MaxAmount 50
-  PickupSound 54
-  States
-  {
-  Spawn:
-    SBOX A -1
-    Stop
-  }
 }
 
 actor Fist : Weapon 2000
@@ -450,7 +429,7 @@ actor ShotGun : Weapon 2001
 		Fire:
 			SHTG A 3 A_Light(160)
 			SHTG A 5 A_FireBullets(10,0,3,7,"BulletPuff");
-			SHTG D 15 A_Light(0)
+			SHTG D 15
 			SHTG A 9
 			Goto Ready
 		Ready:
@@ -507,7 +486,7 @@ actor RocketLauncher : Weapon 2003
 actor ChainGun : Weapon 2002
 {
 	AmmoUse 1
-	AmmoGive 20
+	AmmoGive 50
 	AmmoType "Clip"
 	HudLabel "cHAINGUN"
 	SlotNumber 2
@@ -519,8 +498,10 @@ actor ChainGun : Weapon 2002
 			MGUN A 5 Bright
 			Loop
 		Fire:
-			CHGG A 2 A_FireBullets(2,0,1,3,"BulletPuff");
-			CHGG B 3
+			CHGG C 1 A_FireBullets(2,0,1,6,"BulletPuff");
+			CHGG C 1 Bright A_Light(160)
+			CHGG B 1 Bright
+			CHGG B 1
 			Goto Ready
 		Ready:
 			CHGG A 1 A_WeaponReady;
@@ -538,12 +519,12 @@ actor PoomGuy: Player 1
 	StartItem "ShotGun"
 	StartItem "Shell", 50
 	StartItem "Fist"
-	States
-	{
-		Spawn:
-			PLAY A -1
-			Stop
-	}
+	//States
+	//{
+	//	Spawn:
+	//		PLAY A -1
+	//		Stop
+	//}
 }
 
 actor ZombieMan : Monster 3004
@@ -666,7 +647,7 @@ actor CacodemonBall: Projectile 9995
 
 actor Cacodemon: Monster 3002
 {
-	Health 70
+	Health 100
 	Radius 32
 	Height 56
 	Speed 6

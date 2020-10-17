@@ -12,6 +12,8 @@ local _ambientlight,_ammo_factor,_intersectid,_msg=0,1,0
 
 -- copy color gradients (16*16 colors x 2) to memory
 memcpy(0x4300,0x1000,512)
+-- immediately install palette (for loading screen)
+memcpy(0x5f10,0x4400,16)
 
 -- single-linked list keyed on first element
 local depth_cls={
@@ -64,7 +66,10 @@ function make_camera()
 end
 
 function lerp(a,b,t)
-  return a*(1-t)+b*t
+  -- todo: try a+t*(b-a)
+  -- faster by 1 cycle
+  -- return a*(1-t)+b*t
+  return a+t*(b-a)
 end
 
 -- return shortest angle to target
@@ -189,7 +194,7 @@ function make_sprite_cache(tiles)
 				if len>31 then
 					local old=remove(first)
 					-- reuse cache entry
-					sx,sy,index[old.id]=old[1],old[2]
+					sx,sy,index[old.id]=old.sx,old.sy
 				end
 				-- new (or relocate)
 				-- copy data to sprite sheet
@@ -198,7 +203,7 @@ function make_sprite_cache(tiles)
 					poke4(mem|(j&1)<<2|(j\2)<<6,tiles[id+j])
 				end		
 				--
-				entry={sx,sy,id=id}
+				entry={sx=sx,sy=sy,id=id}
 				-- reverse lookup
 				index[id]=entry
 			end
@@ -219,7 +224,7 @@ function make_sprite_cache(tiles)
 			end
 			len+=1
 			-- return sprite sheet coords
-			return entry[1],entry[2]
+			return entry.sx,entry.sy
 		end
 	}
 end
@@ -309,10 +314,6 @@ function draw_walls(segs,v_cache,light)
     -- logical split or wall?
     -- front facing?
     if x0<x1 and ldef then
-      -- span rasterization
-      -- pick correct texture "major"
-      local dx,u0=x1-x0,v0[seg[9]]*w0
-
       -- dual?
       local facingside,otherside,otop,obottom=ldef[seg.side],ldef[not seg.side]
       -- peg bottom?
@@ -341,7 +342,9 @@ function draw_walls(segs,v_cache,light)
           otop=toptex!=0 and otop
           obottom=bottomtex!=0 and obottom
         end
-
+        -- span rasterization
+        -- pick correct texture "major"
+        local dx,u0=x1-x0,v0[seg[9]]*w0
         local cx0,dy,du,dw=x0\1+1,(y1-y0)/dx,(v1[seg[9]]*w1-u0)/dx,((w1-w0)<<4)/dx
         w0<<=4
         local sx=cx0-x0    
@@ -353,8 +356,8 @@ function draw_walls(segs,v_cache,light)
         if(x1>127) x1=127
         for x=cx0,x1\1 do
           if w0>2.4 then
-            -- top/bottom+color shifing
-            local t,b,pal1=y0-top*w0,y0-bottom*w0,(light*min(15,w0<<1))\1
+            -- top/bottom+perspective correct texture u+color shifing
+            local t,b,u,pal1=y0-top*w0,y0-bottom*w0,u0/(w0>>4),(light*min(15,w0<<1))\1
             if(pal0!=pal1) memcpy(0x5f00,0x4300|pal1<<4,16) pal0=pal1
 
             -- top wall side between current sector and back sector
@@ -363,7 +366,7 @@ function draw_walls(segs,v_cache,light)
             if otop then
               poke4(0x5f38,toptex)             
               local ot=y0-otop*w0
-              tline(x,ct,x,ot,u0/w0,(ct-t)/w0+yoffset,0,1/w0)
+              tline(x,ct,x,ot,u,(ct-t)/w0+yoffset,0,1/w0)
               -- new window top
               t=ot
               ct=ot\1+1
@@ -373,7 +376,7 @@ function draw_walls(segs,v_cache,light)
               poke4(0x5f38,bottomtex)             
               local ob=y0-obottom*w0
               local cob=ob\1+1
-              tline(x,cob,x,b,u0/w0,(cob-ob)/w0,0,1/w0)
+              tline(x,cob,x,b,u,(cob-ob)/w0,0,1/w0)
               -- new window bottom
               b=ob
             end
@@ -382,7 +385,7 @@ function draw_walls(segs,v_cache,light)
             if midtex!=0 then
               -- texture selection
               poke4(0x5f38,midtex)
-              tline(x,ct,x,b,u0/w0,(ct-t)/w0+yoffset,0,1/w0)
+              tline(x,ct,x,b,u,(ct-t)/w0+yoffset,0,1/w0)
             end   
           end
           y0+=dy
@@ -419,7 +422,8 @@ function draw_flats(v_cache,segs,things)
       if(ax<<1>az) code|=8
       
       local w=128/az
-      v={ax,m8,az,outcode=code,u=x,v=z,x=63.5+ax*w,y=63.5-m8*w,w=w}
+      -- >>4 to fix u|v*w overflow on large maps 
+      v={ax,m8,az,outcode=code,u=x>>4,v=z>>4,x=63.5+ax*w,y=63.5-m8*w,w=w}
       v_cache[v0]=v
     end
     v.seg=seg
@@ -529,11 +533,9 @@ function add_thing(thing)
 end
 
 function del_thing(thing)
-  do_async(function()
-    -- detach thing from sub-sector
-    unregister_thing_subs(thing)
-    del(_things,thing) 
-  end)
+  -- detach thing from sub-sector
+  unregister_thing_subs(thing)
+  del(_things,thing)
 end
 
 function unregister_thing_subs(thing)
@@ -926,7 +928,11 @@ function with_health(thing)
       -- avoid reentrancy
       if(dead) return
       
+      -- avoid same species fight
+      if(instigator and instigator.actor.id==self.actor.id) return
+
       -- avoid automatic infight
+      -- + override when player
       if(self==_plyr or instigator==_plyr or rnd()>0.8) self.target=instigator
 
       -- damage reduction?
@@ -980,62 +986,63 @@ function attach_plyr(thing,actor,skill)
   end
 
   return inherit({
-    update=function(self,...)
-      thing.update(self,...)
+    -- tick for player
+    tick=function(self)
       hit_ttl=max(hit_ttl-1)
-    end,
-    control=function(self)
-      wp_y=lerp(wp_y,wp_yoffset,0.3)
+      if not self.dead then
+        wp_y=lerp(wp_y,wp_yoffset,0.3)
 
-      local dx,dz=0,0
+        local dx,dz=0,0
 
-      if wp_hud then
-        wp_hud=not btn(6)
-        for i,k in pairs{0,3,1,2,4} do
-          if btnp(k) then
-            -- only switch if we have the weapon and it's not the current weapon
-            wp_hud,btns=(wp_slot!=i and wp[i]) and wp_switch(i),{}
+        if wp_hud then
+          wp_hud=not btn(6)
+          for i,k in pairs{0,3,1,2,4} do
+            if btnp(k) then
+              -- only switch if we have the weapon and it's not the current weapon
+              wp_hud,btns=(wp_slot!=i and wp[i]) and wp_switch(i),{}
+            end
           end
-        end
-      else
-        -- cursor: fwd+rotate
-        -- cursor+x: weapon switch+rotate
-        -- wasd: fwd+strafe
-        -- o: fire
-        if btn(🅾️) then
-          if(btns[1]) dx=1
-          if(btns[2]) dx=-1
         else
-          if(btns[1]) da-=0.75
-          if(btns[2]) da+=0.75
+          -- cursor: fwd+rotate
+          -- cursor+x: weapon switch+rotate
+          -- wasd: fwd+strafe
+          -- o: fire
+          if btn(🅾️) then
+            if(btns[1]) dx=1
+            if(btns[2]) dx=-1
+          else
+            if(btns[1]) da-=0.75
+            if(btns[2]) da+=0.75
+          end
+          if(btns[3]) dz=1
+          if(btns[4]) dz=-1
+
+          wp_hud=btn(6)
+          poke(0x5f30,1)
+
+          -- wasd
+          if(btn(0,1)) dx=1
+          if(btn(1,1)) dx=-1
+          if(btn(2,1)) dz=1
+          if(btn(3,1)) dz=-1
         end
-        if(btns[3]) dz=1
-        if(btns[4]) dz=-1
 
-        wp_hud=btn(6)
-        poke(0x5f30,1)
+        self.angle-=da/256
+        local ca,sa=cos(self.angle),-sin(self.angle)
+        self:apply_forces(speed*(dz*ca-dx*sa),speed*(dz*sa+dx*ca))
 
-        -- wasd
-        if(btn(0,1)) dx=1
-        if(btn(1,1)) dx=-1
-        if(btn(2,1)) dz=1
-        if(btn(3,1)) dz=-1
+        -- damping
+        -- todo: move to physic code?
+        da*=0.8
+
+        -- update weapon vm
+        wp[wp_slot].owner=self
+        wp[wp_slot]:tick()
+        
+        -- weapon bobing
+        bobx,boby=lerp(bobx,2*da,0.3),lerp(boby,cos(time()*3)*abs(dz)*speed*2,0.2)
       end
-
-      self.angle-=da/256
-      local ca,sa=cos(self.angle),-sin(self.angle)
-      self:apply_forces(speed*(dz*ca-dx*sa),speed*(dz*sa+dx*ca))
-
-      -- damping
-      -- todo: move to physic code?
-      da*=0.8
-
-      -- update weapon vm
-      wp[wp_slot].owner=self
-      wp[wp_slot]:tick()
-      
-      -- weapon bobing
-      bobx,boby=lerp(bobx,2*da,0.3),lerp(boby,cos(time()*3)*abs(dz)*speed*2,0.2)
+      return true
     end,
     attach_weapon=function(self,weapon,switch)
       local slot=weapon.actor.slot
@@ -1184,7 +1191,7 @@ function play_state()
 
   -- ammo scaling factor
   _ammo_factor=split"2,1,1,1"[_skill]
-  local bsp,thingdefs=decompress(_maps_group[_map_id],_maps_cart[_map_id],_maps_offset[_map_id],unpack_map,_skill,_actors)
+  local bsp,thingdefs=decompress(mod_name,_maps_cart[_map_id],_maps_offset[_map_id],unpack_map,_skill,_actors)
   _bsp=bsp
 
   -- restore main data cart
@@ -1252,20 +1259,20 @@ function gameover_state(pos,angle,target,h)
       idle_ttl-=1
       -- avoid immediate button hit
       if idle_ttl<0 then
-        load(mod_name.."_0.p8",nil,_skill..",".._map_id..",1")
-        --if btnp(🅾️) then
-          -- back to title cart        
-        --  load(mod_name.."_0.p8",nil,"gameover")
-        --elseif btnp(❎) then
-        --  next_state(slicefade_state,play_state)
-        --end
+        if btnp(🅾️) then
+          -- 1: gameover    
+          load(mod_name.."_0.p8",nil,_skill..",".._map_id..",1")
+        elseif btnp(❎) then
+          -- 3: retry
+          load(mod_name.."_0.p8",nil,_skill..",".._map_id..",3")
+        end
       end
     end,
     -- draw
     function()
       draw_bsp()
 
-      --if(time()%4<2) printb("you died - ❎ restart/🅾️ menu",8,120,12)
+      if(time()%4<2) printb("you died - ❎ restart/🅾️ menu",8,120,12)
 
       -- set screen palette
       -- pal({140,1,139,3,4,132,133,7,6,134,5,8,2,9,10},1)
@@ -1273,51 +1280,20 @@ function gameover_state(pos,angle,target,h)
     end
 end
 
-function slicefade_state(...)
-  local args,ttl,r,h,rr=pack(...),30,{},{},0
-  for i=0,127 do
-    rr=lerp(rr,rnd(0.1),0.3)
-    r[i],h[i]=0.1+rr,0
-  end
-  return 
-    -- update
-    function()
-      ttl-=1
-      if ttl<0 or btnp(4) or btnp(5) then
-        next_state(unpack(args))
-      end
-    end,
-    -- draw
-    function()
-      cls()
-      for i,r in pairs(r) do
-        h[i]=lerp(h[i],129,r)
-        sspr(i,0,1,128,i,h[i],1,128)
-      end
-    end,
-    -- init
-    function()
-      -- copy screen to spritesheet
-      memcpy(0x0,0x6000,8192)
-    end
-end
-
-function mainmenu()
-  load(mod_name.."_0.p8")
-end
 
 -->8
 -- game loop
 function _init()
   cartdata(mod_name)
 
-  menuitem(1,"main menu",mainmenu)
-
+  -- exit menu entry
+  menuitem(1,"main menu",function()
+    load(mod_name.."_0.p8")
+  end)
+  
   -- launch params
   local p=split(stat(6))
   _skill,_map_id=tonum(p[1]) or 2,tonum(p[2]) or 1
-  -- record max level reached so far
-  if(_map_id>dget(32)) dset(32,_map_id)
 
   next_state(play_state)
 end
@@ -1345,10 +1321,8 @@ function _update()
   -- decay flash light
   _ambientlight*=0.8
   -- keep world running
-  for _,thing in pairs(_things) do
-    if(thing.control) thing:control()
-    thing:tick()
-    if(thing.update) thing:update()
+  for thing in all(_things) do
+    if(thing:tick() and thing.update) thing:update()
   end
 
   _update_state()
@@ -1359,18 +1333,18 @@ end
 -- 3d functions
 local function v_clip(v0,v1,t)
   local invt=1-t
-  local x,y,z=
+  local x,y=
     v0[1]*invt+v1[1]*t,
-    v0[2]*invt+v1[2]*t,
-    v0[3]*invt+v1[3]*t
-    local w=128/z
+    v0[2]
+    --local w=128/z
     return {
-      x,y,z,
-      x=63.5+x*w,
-      y=63.5-y*w,
+      -- z is clipped to near plane
+      x,y,8,
+      x=63.5+(x<<4),
+      y=63.5-(y<<4),
       u=v0.u*invt+v1.u*t,
       v=v0.v*invt+v1.v*t,
-      w=w,
+      w=16,
       seg=v0.seg
     }
 end
@@ -1512,15 +1486,6 @@ function unpack_special(sectors,actors)
       -- save player's state
       _plyr:save()
 
-      --_map_id+=1
-      -- end game?
-      --if _map_id>#_maps_group then
-        -- records best skill completed
-      --  if(_skill>dget(33)) dset(33,_skill)
-      --  load(mod_name_.."0.p8",nil,"endgame")
-      --end
-      -- load next map
-      --load(_maps_group[_map_id]..".p8",nil,_skill..",".._map_id)
       load(mod_name.."_0.p8",nil,_skill..",".._map_id..",2")
     end
   end
@@ -1772,7 +1737,7 @@ function unpack_actors()
           tick=function(self)
             while ticks!=-1 do
               -- wait
-              if(ticks>0) ticks-=1 return
+              if(ticks>0) ticks-=1 return true
               -- done, next step
               if(ticks==0) i+=1
 ::loop::
