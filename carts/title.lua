@@ -100,6 +100,7 @@ function menu_state()
         menu_i+=1
         if menu_i>#menus then
           next_state(launch_state,menus[2].sel,menus[1].sel)
+          menu_i-=1
         end
       end      
     end,
@@ -166,15 +167,30 @@ end
 function launch_state(skill,id)
   -- record max level reached so far
   if(id>dget(32)) dset(32,id)
-
-  unpack_gfx(loading_gfx.bytes)
-  cls()
-  spr(0,0,0,16,16)
-  pal(loading_gfx.pal,1)
-  local s="eNTERING ".._maps_label[id]
-  printb(s,63-#s*2,80,15)
-  flip()
-  load(_maps_group[id]..".p8",nil,skill..","..id)
+  local load_ttl=15
+  return
+    function()
+      -- delay before load
+      -- need to allow _draw to be called to prevent palette reset on load
+      if load_ttl==0 then
+        -- stop all sfx to prevent audio glitch
+        for i=0,3 do
+          sfx(-1,i)
+        end
+        load(_maps_group[id]..".p8",nil,skill..","..id)
+      end
+      load_ttl-=1
+    end,
+    function()
+      cls()
+      spr(0,0,0,16,16)
+      pal(loading_gfx.pal,1)
+      local s="eNTERING ".._maps_label[id]
+      printb(s,63-#s*2,80,15)
+    end,
+    function()
+      unpack_gfx(loading_gfx.bytes)
+    end
 end
 
 function endgame_state(skill)

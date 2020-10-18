@@ -370,20 +370,18 @@ actor Shell : Ammo 2008
 actor Fist : Weapon 2000
 {
 	SlotNumber 5
-	AttackSound 56
 	HudLabel "fIST"
 	States {
 		Spawn:
-			SHOT A 5
+			PUNG A 5
 			Loop
 		Fire:
-			SHTG A 3 A_Light(160)
-			SHTG A 5 A_FireBullets(10,0,3,7,"BulletPuff");
-			SHTG B 15 A_Light(0)
-			SHTG A 9
+			PUNG B 2 A_PlaySound(52);
+			PUNG C 5 A_MeleeAttack(15,"BulletPuff");
+			PUNG B 4
 			Goto Ready
 		Ready:
-			SHTG A 1 A_WeaponReady;
+			PUNG A 1 A_WeaponReady;
 			Loop
 	}
 }
