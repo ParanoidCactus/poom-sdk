@@ -95,16 +95,21 @@ function menu_state()
         -- unlocked?
         menus[menu_i].sel=mid(active_sel,1,menus[menu_i].max)
       end
-      if btnp(4) or btnp(5) then
+      if btnp(5) then
+        if(menu_i>1)sfx(0)
+        menu_i=max(1,menu_i-1)
+      elseif btnp(4) then
         if(menu_i>0)sfx(1)
         menu_i+=1
         if menu_i>#menus then
           next_state(launch_state,menus[2].sel,menus[1].sel)
-          menu_i-=1
         end
-      end      
+      end
     end,
     function()
+      -- exit early because state will have been change to launch_state
+      if (menu_i>#menus)return
+
       cls()
       memcpy(0x6000,0x4e00,64*13)
       spr(0,0,13,16,15)    
@@ -167,19 +172,17 @@ end
 function launch_state(skill,id)
   -- record max level reached so far
   if(id>dget(32)) dset(32,id)
-  local load_ttl=15
   return
     function()
-      -- delay before load
-      -- need to allow _draw to be called to prevent palette reset on load
-      if load_ttl==0 then
+      -- delay to allow _draw to be called to prevent palette reset on load
+      if launch_ttl==0 then
         -- stop all sfx to prevent audio glitch
         for i=0,3 do
           sfx(-1,i)
         end
         load(_maps_group[id]..".p8",nil,skill..","..id)
       end
-      load_ttl-=1
+      launch_ttl-=1
     end,
     function()
       cls()
@@ -272,6 +275,9 @@ function _init()
     -- 4: end game
     {fadetoblack_state,endgame_state,skill+1}
   }
+
+  -- wait time before launching (15 frames when loading from menu to prevent audio from getting cut too short)
+  launch_ttl=(state==2 or state==3) and 1 or 15
 
   next_state(unpack(states[state]))
 end
