@@ -389,7 +389,7 @@ actor Fist : Weapon 2000
 actor PlasmaRifle : Weapon 2004
 {
 	AmmoUse 1
-	AmmoGive 40
+	AmmoGive 80
 	AmmoType "Cell"
 	SlotNumber 4
 	AttackSound 58
@@ -425,8 +425,9 @@ actor ShotGun : Weapon 2001
 			SHOT A 5 Bright
 			Loop
 		Fire:
-			SHTG A 3 A_Light(160)
-			SHTG A 5 A_FireBullets(10,0,3,7,"BulletPuff");
+			SHTG B 2 Bright A_Light(160)
+			SHTG B 2 Bright A_FireBullets(10,0,3,7,"BulletPuff");
+			SHTG A 4
 			SHTG D 15
 			SHTG A 9
 			Goto Ready
@@ -507,7 +508,7 @@ actor ChainGun : Weapon 2002
 	}
 }
 
-actor PoomGuy: Player 1
+actor PoomGuy: PlayerPawn 1
 {
 	Radius 16
 	Health 100
@@ -517,12 +518,6 @@ actor PoomGuy: Player 1
 	StartItem "ShotGun"
 	StartItem "Shell", 50
 	StartItem "Fist"
-	//States
-	//{
-	//	Spawn:
-	//		PLAY A -1
-	//		Stop
-	//}
 }
 
 actor ZombieMan : Monster 3004
@@ -552,7 +547,7 @@ actor ZombieMan : Monster 3004
     SPOS H 5
     SPOS I 5 // A_Scream
     SPOS J 5 //A_NoBlocking
-    SPOS K 60
+    SPOS K -1
     Stop
   }
 }
@@ -614,7 +609,7 @@ actor DoomImp: Monster 3001
 		TROO H 5
 		TROO I 5
 		TROO J 5
-		TROO K 60
+		TROO K -1
 		Stop
 	}
 }
@@ -651,6 +646,9 @@ actor Cacodemon: Monster 3002
 	Speed 6
 	PainChance 200
 	MeleeRange 64
+	+FLOAT
+	+NOGRAVITY
+	+DROPOFF
 	States
 	{
 		Spawn:
@@ -677,7 +675,7 @@ actor Cacodemon: Monster 3002
 		HEAD H 5
 		HEAD I 5
 		HEAD J 5
-		HEAD K 60
+		HEAD K -1
 		Stop
 	}
 }
@@ -711,7 +709,7 @@ actor Cyberdemon: Monster 16
 			CYBR J 8
 			CYBR K 6
 			CYBR L 6
-			CYBR P 60
+			CYBR P -1
 			Stop
 	}
 }
