@@ -7,8 +7,9 @@ actor BlueArmor : Armor 2018
   States
   {
   Spawn:
-    ARM1 A -1 Bright
-    Stop
+    ARM1 A 6 Bright
+	ARM1 A 6
+    Loop
   }
 }
 
@@ -21,8 +22,9 @@ actor RedArmor : Armor 2019
   States
   {
   Spawn:
-    ARM3 A -1 Bright
-    Stop
+    ARM3 A 6 Bright
+	ARM3 A 6
+    Loop
   }
 }
 
@@ -35,8 +37,9 @@ actor GoldArmor : Armor 2020
   States
   {
   Spawn:
-    ARM2 A -1 Bright
-    Stop
+    ARM2 A 6 Bright
+	ARM2 A 6
+    Loop
   }
 }
 
@@ -68,7 +71,8 @@ actor MedKit : Health 2016
   States
   {
   Spawn:
-    STIM A -1 Bright
+    STIM A 6 Bright
+	STIM A 6
     Loop
   }
 }
@@ -105,8 +109,9 @@ actor RedCard:Key 13
  States
  {
   Spawn:
-   RKEY A -1 Bright
-   Stop
+   RKEY A 6 Bright
+   RKEY A 6
+   Loop
  }
 }
 
@@ -123,8 +128,9 @@ actor BlueCard:Key 5
  States
  {
   Spawn:
-   BKEY A -1 Bright
-   Stop
+   BKEY A 6 Bright
+   BKEY A 6
+   Loop
  }
 }
 
@@ -141,8 +147,9 @@ actor YellowCard:Key 6
  States
  {
   Spawn:
-   GKEY A -1 Bright
-   Stop
+   GKEY A 6 Bright
+   GKEY A 6
+   Loop
  }
 }
 
@@ -295,8 +302,9 @@ actor Cell : Ammo 2047
 	  States
 	  {
 	  Spawn:
-		CELP A -1
-		Stop
+		CELP A 6 Bright
+		CELP A 6
+		Loop
 	  }
 }
 
@@ -307,8 +315,9 @@ actor CellPack : Cell 17
   States
   {
   Spawn:
-    CELP A -1
-    Stop
+    CELP A 6 Bright
+	CELP A 6
+    Loop
   }
 }
 
@@ -322,8 +331,9 @@ actor RocketAmmo : Ammo 2010
 	  States
   {
   Spawn:
-    ROCK A -1
-    Stop
+    ROCK A 6 Bright
+	ROCK A 6
+    Loop
   }
 }
 
@@ -334,8 +344,9 @@ actor RocketBox : RocketAmmo 2046
   States
   {
   Spawn:
-    BROK A -1
-    Stop
+    BROK A 6 Bright
+	BROK A 6
+    Loop
   }
 }
 
@@ -348,8 +359,9 @@ actor Clip : Ammo 2007
   States
   {
   Spawn:
-    AMMO A -1
-    Stop
+    AMMO A 6 Bright
+	AMMO A 6
+    Loop
   }
 }
 
@@ -362,8 +374,9 @@ actor Shell : Ammo 2008
 	  States
 	  {
 	  Spawn:
-		SHEL A -1 Bright
-		Stop
+		SHEL A 6 Bright
+		SHEL A 6
+		Loop
 	  }
 }
 
@@ -393,7 +406,7 @@ actor PlasmaRifle : Weapon 2004
 	AmmoType "Cell"
 	SlotNumber 4
 	AttackSound 58
-	HudLabel "pLASMA rIFLE"
+	HudLabel "pLASMA gUN"
 	PickupSound 54
 	States {
 		Spawn:
@@ -425,11 +438,11 @@ actor ShotGun : Weapon 2001
 			SHOT A 5 Bright
 			Loop
 		Fire:
-			SHTG B 2 Bright A_Light(160)
-			SHTG B 2 Bright A_FireBullets(10,0,3,7,"BulletPuff");
+			SHTG B 1 Bright A_Light(160)
+			SHTG B 5 Bright A_FireBullets(10,0,3,7,"BulletPuff");
 			SHTG A 4
 			SHTG D 15
-			SHTG A 9
+			SHTG A 7
 			Goto Ready
 		Ready:
 			SHTG A 1 A_WeaponReady;
@@ -540,7 +553,7 @@ actor ZombieMan : Monster 3004
   Missile:
     SPOS E 9 A_FaceTarget;
 	SPOS E 1 A_PlaySound(55);
-    SPOS F 8 A_FireBullets(0, 0, 1, 9, "BulletPuff"); //22.5
+    SPOS F 8 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff"); //22.5
     SPOS E 8
     Goto See
   Death:
@@ -595,8 +608,9 @@ actor DoomImp: Monster 3001
 			Loop
 		Melee:
 			TROO B 8 A_FaceTarget;
-			TROO E 1 A_PlaySound(51);
-			TROO E 12 A_MeleeAttack(5, "BloodPuff");
+			TROO E 1 Bright A_PlaySound(51);
+			TROO E 6 Bright A_MeleeAttack(5, "BloodPuff");
+			TROO E 6
 			TROO B 4
 			Goto See
 		Missile:
@@ -618,7 +632,7 @@ actor CacodemonBall: Projectile 9995
 {
   Radius 6
   Height 8
-  Speed 15
+  Speed 25
   FastSpeed 20
   Damage 5
   Mass 33
@@ -640,7 +654,7 @@ actor CacodemonBall: Projectile 9995
 
 actor Cacodemon: Monster 3002
 {
-	Health 100
+	Health 150
 	Radius 32
 	Height 56
 	Speed 6

@@ -44,8 +44,8 @@ function start_state()
       pal()
       memcpy(0x6000,0x4e00,64*13)
       spr(0,0,13,16,15)    
-      printb("@fsouchu",2,121,12)
-      printb("@gamecactus",83,121,12)
+      printb("@fsouchu",2,121,vcol(4))
+      printb("@gamecactus",83,121,vcol(4))
 
       pal(title_gfx.pal,1)
     end,
@@ -64,20 +64,15 @@ function menu_state()
       "hEY, NOT TOO ROUGH",
       "hURT ME PLENTY",
       "uLTRA-vIOLENCE"
-    },sel=2,max=2}},1,0
+    },sel=3,max=2}},1,0
 
   -- read max level reached
   local max_map_id=dget(32)
   if(max_map_id>#_maps_label) max_map_id=#_maps_label dset(32,max_map_id)
   if(max_map_id<=0) max_map_id=1 dset(32,max_map_id)
 
-  -- read max skill reached
-  local max_skill=dget(33)
-  if(max_skill>#menus[2][2]) max_skill=#menus[2][2] dset(33,max_skill)
-  if(max_skill<2) max_skill=2 dset(33,max_skill)
-
   menus[1].max=max_map_id
-  menus[2].max=max_skill
+  menus[2].max=#menus[2][2]
 
   return
     function()
@@ -113,31 +108,31 @@ function menu_state()
       cls()
       memcpy(0x6000,0x4e00,64*13)
       spr(0,0,13,16,15)    
-      printb("@fsouchu",2,121,12)
-      printb("@gamecactus",83,121,12)
+      printb("@fsouchu",2,121,vcol(4))
+      printb("@gamecactus",83,121,vcol(4))
 
       -- dark menu background
       -- todo: fix
       for i=0,15 do
-        pal(sget(112+i,128-13),sget(112+i,129-13))
+        pal(vcol(i),sget(112+i,129-13))
         --pset(i,0,i)
       end
       sspr(12,51,104,19+#menus[menu_i][2]*9,12,64)
       pal()
       
       -- title
-      printb(menus[menu_i][1],63-#menus[menu_i][1]*2,69,9)
+      printb(menus[menu_i][1],63-#menus[menu_i][1]*2,69,vcol(14))
 
       -- selection marker
-      rectfill(18,70+menus[menu_i].sel*9,113,79+menus[menu_i].sel*9,4)
-      palt(0,false)
-      palt(12,true)
+      rectfill(18,70+menus[menu_i].sel*9,113,79+menus[menu_i].sel*9,vcol(2))
+      palt(vcol(0),false)
+      palt(vcol(4),true)
       sspr(anm_ttl\12*10,115,11,12,14,68+menus[menu_i].sel*9)
       palt()
 
       -- menu items
       for i=1,#menus[menu_i][2] do
-        printb(menus[menu_i][2][i],28,72+i*9,i<=menus[menu_i].max and 8 or 11)
+        printb(menus[menu_i][2][i],28,72+i*9,i<=menus[menu_i].max and vcol(4) or vcol(3))
       end
       
       pal(title_gfx.pal,1)
@@ -235,11 +230,16 @@ function slicefade_state(...)
     end,
     -- draw
     function()
-      cls()
+      local src,mem=loading_gfx.bytes,0x6000
+      for i=0,#src-1 do
+        poke(mem+i,ord(src,i+1))
+      end
+
       for i,r in pairs(r) do
         h[i]=lerp(h[i],129,r)
         sspr(i,0,1,128,i,h[i],1,128)
       end
+      pal(loading_gfx.pal,1)
     end,
     -- init
     function()
@@ -292,4 +292,9 @@ end
 
 function lerp(a,b,t)
   return a+t*(b-a)
+end
+
+-- color lookup from title image
+function vcol(c)
+  return sget(112+c,128-13)
 end
