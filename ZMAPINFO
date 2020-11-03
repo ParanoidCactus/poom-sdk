@@ -1,25 +1,25 @@
-map E1M4 "hANGER"
+map E1M4 "tRITON lAB"
 {
 	levelnum = 1
 	next = "E1M2"
 	music = 0
 }
 
-map E1M2 "lAB"
+map E1M2 "aVERNUS aNNEXE"
 {
 	levelnum = 2
 	next = "E2M1"
 	music = 0
 }
 
-map E2M1 "cRYPT"
+map E2M1 "tHE dEFILED rEALM"
 {
 	levelnum = 3
 	next = "E2M2"
 	music = 0
 }
 
-map E2M2 "mAELSTROM"
+map E2M2 "hALLS OF eTERNAL pAIN"
 {
 	levelnum = 4
 	next = "endgame"

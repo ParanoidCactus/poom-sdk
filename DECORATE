@@ -276,18 +276,20 @@ actor PlasmaBall : Projectile 9998
 {
 	Radius 13
 	Height 8
-	Speed 80
+	Speed 100
  	Damage 3
  +MISSILE
  States
 	{
  	Spawn:
-		PLSB A 120 Bright
-		Stop
+		PLSB A 3 Bright
+		PLSB B 3 Bright
+		Loop
 	Death:
-		PLSE A 4 Bright
-		PLSE C 4 Bright
-		PLSE E 4 Bright
+		PLSE A 3 Bright
+		PLSE B 3 Bright
+		PLSE C 3 Bright
+		PLSE D 3 Bright
 		Stop
 	}
 }
@@ -414,7 +416,8 @@ actor PlasmaRifle : Weapon 2004
 			PLAS A 5 Bright
 			Loop
 		Fire:
-			PLSG A 3 A_FireProjectile("PlasmaBall");
+			PLSG A 1 Bright A_Light(160)
+			PLSG A 2 Bright A_FireProjectile("PlasmaBall");
 			PLSG A 4
 			Goto Ready
 		Ready:
