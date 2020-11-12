@@ -272,28 +272,6 @@ actor BloodPuff 9996
   }
 }
 
-actor PlasmaBall : Projectile 9998
-{
-	Radius 13
-	Height 8
-	Speed 100
- 	Damage 3
- +MISSILE
- States
-	{
- 	Spawn:
-		PLSB A 3 Bright
-		PLSB B 3 Bright
-		Loop
-	Death:
-		PLSE A 3 Bright
-		PLSE B 3 Bright
-		PLSE C 3 Bright
-		PLSE D 3 Bright
-		Stop
-	}
-}
-
 actor Cell : Ammo 2047
 {
 	Amount 20
@@ -400,6 +378,29 @@ actor Fist : Weapon 2000
 			Loop
 	}
 }
+
+actor PlasmaBall : Projectile 9998
+{
+	Radius 13
+	Height 8
+	Speed 100
+ 	Damage 2
+ +MISSILE
+ States
+	{
+ 	Spawn:
+		PLSB A 3 Bright
+		PLSB B 3 Bright
+		Loop
+	Death:
+		PLSE A 3 Bright
+		PLSE B 3 Bright
+		PLSE C 3 Bright
+		PLSE D 3 Bright
+		Stop
+	}
+}
+
 
 actor PlasmaRifle : Weapon 2004
 {
@@ -663,6 +664,7 @@ actor Cacodemon: Monster 3002
 	Speed 6
 	PainChance 200
 	MeleeRange 64
+	Mass 500
 	+FLOAT
 	+NOGRAVITY
 	+DROPOFF
@@ -702,10 +704,11 @@ actor LostSoul: Monster 3006
 	Health 60
 	Radius 16
 	Height 56
-	Speed 32
+	Speed 16
 	PainChance 200
 	MeleeRange 128
 	Damage 3
+	Mass 75
 	+FLOAT
 	+NOGRAVITY
 	+DROPOFF
@@ -757,7 +760,7 @@ actor Cyberdemon: Monster 16
 	Health 2000
 	Radius 40
 	Height 110
-	Mass 100
+	Mass 1000
 	Speed 8
 	PainChance 20
 	MeleeRange 352
