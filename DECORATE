@@ -697,6 +697,60 @@ actor Cacodemon: Monster 3002
 	}
 }
 
+actor LostSoul: Monster 3006
+{
+	Health 60
+	Radius 16
+	Height 56
+	Speed 32
+	PainChance 200
+	MeleeRange 128
+	Damage 3
+	+FLOAT
+	+NOGRAVITY
+	+DROPOFF
+	States
+	{
+		Spawn:
+			SKUL A 4 Bright 
+			SKUL B 4 Bright A_Look;
+			Loop
+		See:
+			SKUL A 4 Bright 
+			SKUL B 4 Bright A_Chase;
+			Loop
+		Melee:
+			SKUL A 4 Bright A_FaceTarget;
+			SKUL E 4 Bright A_SkullAttack;
+			SKUL F 4 Bright  
+			SKUL E 4 Bright A_SkullAttack;
+			SKUL F 4 Bright 
+			SKUL A 1 Bright A_MeleeAttack(5, "BloodPuff");
+			SKUL A 3 Bright A_PlaySound(51);
+			SKUL B 4 Bright
+			Goto See
+		Missile:
+			SKUL A 4 Bright A_FaceTarget;
+			SKUL E 1 Bright A_SkullAttack;
+			SKUL E 3 Bright A_PlaySound(50);
+			SKUL F 4 Bright  
+			SKUL E 4 Bright A_SkullAttack;
+			SKUL F 4 Bright
+			SKUL E 4 Bright A_SkullAttack;
+			SKUL F 4 Bright  
+			SKUL E 4 Bright 
+			SKUL F 4 Bright 
+			Goto See
+	  Death:
+		SKUL H 1 Bright A_PlaySound(60);
+		SKUL H 8 Bright A_Explode(10, 40);
+		MISL B 8 Bright
+		MISL C 6 Bright
+		MISL D 4 Bright
+		Stop
+	}
+}
+
 actor Cyberdemon: Monster 16
 {
 	Health 500

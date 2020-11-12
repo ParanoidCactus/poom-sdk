@@ -3,6 +3,7 @@ map E1M4 "tRITON lAB"
 	levelnum = 1
 	next = "E1M2"
 	music = 0
+	sky1 = "SKYBOX"
 }
 
 map E1M2 "aVERNUS aNNEXE"
@@ -10,6 +11,7 @@ map E1M2 "aVERNUS aNNEXE"
 	levelnum = 2
 	next = "E2M1"
 	music = 0
+	sky1 = "SKYBOX"
 }
 
 map E2M1 "tHE dEFILED rEALM"
@@ -17,6 +19,7 @@ map E2M1 "tHE dEFILED rEALM"
 	levelnum = 3
 	next = "E2M2"
 	music = 0
+	sky1 = "SKYBOX"
 }
 
 map E2M2 "hALLS OF eTERNAL pAIN"
@@ -24,4 +27,5 @@ map E2M2 "hALLS OF eTERNAL pAIN"
 	levelnum = 4
 	next = "endgame"
 	music = 21
+	sky1 = "SKYBOX"
 }

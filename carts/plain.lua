@@ -2,7 +2,6 @@
 function decompress(cart,cart_id,mem,fn,...)
 	-- jump to cart
 	reload(0,0,0x4300,cart.."_"..cart_id..".p8")
-
 	-- register global mpeek function
 	mpeek=function()
 		-- switch cart as needed
