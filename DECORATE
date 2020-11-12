@@ -709,6 +709,7 @@ actor LostSoul: Monster 3006
 	+FLOAT
 	+NOGRAVITY
 	+DROPOFF
+	+DONTFALL
 	States
 	{
 		Spawn:
@@ -753,28 +754,51 @@ actor LostSoul: Monster 3006
 
 actor Cyberdemon: Monster 16
 {
-	Health 500
+	Health 2000
 	Radius 40
 	Height 110
 	Mass 100
-	Speed 16
+	Speed 8
 	PainChance 20
+	MeleeRange 352
 	
 	States
 	{
 		Spawn:
-			CYBR A 4
+			CYBR A 4 A_Look;
 			Loop
 		See:
-			CYBR A 3
-			CYBR B 2 
+			CYBR A 5
+			CYBR B 4 
 			CYBR B 1 A_Chase;
 			Loop
-		// Melee:
+		Melee:
+			CYBR A 9 A_FaceTarget;
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_PlaySound(55);
+			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 6
+			Goto See
 		Missile:
-			CYBR A 8 A_FaceTarget;
-			CYBR A 1 A_PlaySound(53);
-			CYBR F 12 A_FireProjectile("DoomImpBall");
+			CYBR A 2 A_FaceTarget;
+			CYBR A 1 A_PlaySound(57);
+			CYBR F 3 Bright A_FireProjectile("Rocket");
+			CYBR F 3
 			Goto See
 		Death:
 			CYBR J 8

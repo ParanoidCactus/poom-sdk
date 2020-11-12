@@ -25,6 +25,14 @@ map E2M1 "tHE dEFILED rEALM"
 map E2M2 "hALLS OF eTERNAL pAIN"
 {
 	levelnum = 4
+	next = "E2M3"
+	music = 21
+	sky1 = "SKYBOX"
+}
+
+map E2M3 "sANCTUM OF tORMENT"
+{
+	levelnum = 5
 	next = "endgame"
 	music = 21
 	sky1 = "SKYBOX"

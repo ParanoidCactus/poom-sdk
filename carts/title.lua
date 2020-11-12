@@ -126,24 +126,24 @@ function menu_state()
         pal(vcol(i),sget(112+i,129-13))
         --pset(i,0,i)
       end
-      sspr(12,51,104,19+#menus[menu_i][2]*9,12,64)
+      sspr(12,51,104,15+#menus[menu_i][2]*8,12,64)
       pal()
       
       -- title
-      printb(menus[menu_i][1],63-#menus[menu_i][1]*2,69,vcol(14))
+      printb(menus[menu_i][1],63-#menus[menu_i][1]*2,67,vcol(14))
 
       -- selection marker
-      rectfill(18,70+menus[menu_i].sel*9,113,79+menus[menu_i].sel*9,vcol(2))
+      rectfill(18,68+menus[menu_i].sel*8,113,75+menus[menu_i].sel*8,vcol(2))
       palt(vcol(0),false)
       palt(vcol(4),true)
-      sspr(anm_ttl\12*10,115,11,12,14,68+menus[menu_i].sel*9)
+      sspr(anm_ttl\12*10,115,11,12,14,65+menus[menu_i].sel*8)
       palt()
 
       -- menu items
       for i=1,#menus[menu_i][2] do
         local s=menus[menu_i][2][i]
         if(i>menus[menu_i].max) s=masked(s)
-        printb(s,28,72+i*9,i<=menus[menu_i].max and vcol(4) or vcol(3))
+        printb(s,28,69+i*8,i<=menus[menu_i].max and vcol(4) or vcol(3))
       end
       
       pal(title_gfx.pal,1)
