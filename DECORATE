@@ -458,7 +458,7 @@ actor Rocket : Projectile 9997
 {
   Radius 11
   Height 8
-  Speed 60
+  Speed 50
   Damage 5
   +MISSILE
   States
@@ -757,13 +757,13 @@ actor LostSoul: Monster 3006
 
 actor Cyberdemon: Monster 16
 {
-	Health 2000
+	Health 3000
 	Radius 40
 	Height 110
 	Mass 1000
-	Speed 8
+	Speed 160
 	PainChance 20
-	MeleeRange 352
+	MeleeRange 338
 	
 	States
 	{
@@ -772,11 +772,11 @@ actor Cyberdemon: Monster 16
 			Loop
 		See:
 			CYBR A 5
-			CYBR B 4 
+			CYBR B 4
 			CYBR B 1 A_Chase;
 			Loop
 		Melee:
-			CYBR A 9 A_FaceTarget;
+			CYBR A 6 A_FaceTarget;
 			CYBR A 1 A_PlaySound(55);
 			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
 			CYBR A 1 A_PlaySound(55);
@@ -798,10 +798,22 @@ actor Cyberdemon: Monster 16
 			CYBR A 6
 			Goto See
 		Missile:
-			CYBR A 2 A_FaceTarget;
+			CYBR A 4 A_FaceTarget;
 			CYBR A 1 A_PlaySound(57);
 			CYBR F 3 Bright A_FireProjectile("Rocket");
 			CYBR F 3
+			CYBR A 4 A_FaceTarget;
+			CYBR A 1 A_PlaySound(57);
+			CYBR F 3 Bright A_FireProjectile("Rocket");
+			CYBR F 3
+			CYBR A 4 A_FaceTarget;
+			CYBR A 1 A_PlaySound(57);
+			CYBR F 3 Bright A_FireProjectile("Rocket");
+			CYBR F 3
+			CYBR A 5 A_SkullAttack;
+			CYBR B 5 A_SkullAttack;
+			CYBR A 5 A_SkullAttack;
+			CYBR B 5 A_SkullAttack;
 			Goto See
 		Death:
 			CYBR J 8

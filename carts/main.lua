@@ -1,6 +1,5 @@
 -- globals
-local _onoff_textures,_transparent_textures,_bsp,_cam,_plyr,_things,_sprite_cache,_actors,_btns,_wp_hud={[0]=0},{}
-local _slow,_ambientlight,_ammo_factor,_intersectid,_msg=0,0,1,0
+local _slow,_ambientlight,_ammo_factor,_intersectid,_onoff_textures,_transparent_textures,_bsp,_cam,_plyr,_things,_sprite_cache,_actors,_btns,_wp_hud,_msg=0,0,1,0,{[0]=0},{}
 
 --local k_far,k_near=0,2
 --local k_right,k_left=4,8
@@ -319,7 +318,7 @@ end
 
 -- ceil/floor/wall rendering
 function draw_flats(v_cache,segs)
-  local verts,outcode,nearclip,m1,m3,m4,m8,m9,m11,m12={},0xffff,0,unpack(_cam.m)
+  local verts,outcode,nearclip,px,py,m1,m3,m4,m8,m9,m11,m12={},0xffff,0,_plyr[1],_plyr[2],unpack(_cam.m)
   
   -- to cam space + clipping flags
   for i,seg in ipairs(segs) do
@@ -534,10 +533,10 @@ function draw_flats(v_cache,segs)
         local side,_,flipx,bright,sides=0,unpack(frame)
         -- use frame brightness level
         local pal1=bright and 8 or (light*min(15,w0<<5))\1
-        if(pal0!=pal1) memcpy(0x5f00,0x4300|min(pal1,15)<<4,16) pal0=pal1            
+        if(pal0!=pal1) memcpy(0x5f00,0x4300|pal1<<4,16) pal0=pal1            
         -- pick side (if any)
         if sides>1 then
-          local angle=((atan2(_plyr[1]-thing[1],thing[2]-_plyr[2])-thing.angle+0.0625)%1+1)%1
+          local angle=((atan2(px-thing[1],thing[2]-py)-thing.angle+0.0625)%1+1)%1
           side=(sides*angle)\1
           -- get flip bit from mask
           flipx=flipx&(1<<side)!=0
@@ -574,7 +573,7 @@ end
 
 function register_thing_subs(node,thing,radius)
   -- leaf?
-  if node.pvs then
+  if node.in_pvs then
     -- thing -> sector
     thing.subs[node]=true
     -- reverse
@@ -607,13 +606,12 @@ function intersect_sub_sector(segs,p,d,tmin,tmax,radius,intersect_cb,skipthings)
   if not skipthings then
     local hits={}
     for thing,_ in pairs(segs.things) do
-      local actor=thing.actor
       -- not already "hit"
       -- not a missile
       -- not dead
-      if thing.intersectid!=intersectid and not actor.is_missile and not thing.dead then
+      if thing.intersectid!=intersectid and not thing.dead and not thing.actor.is_missile then
         -- overflow 'safe' coordinates
-        local m,r={(px-thing[1])>>8,(py-thing[2])>>8},(actor.radius+radius)>>8
+        local m,r={(px-thing[1])>>8,(py-thing[2])>>8},(thing.actor.radius+radius)>>8
         local b,c=v2_dot(m,d),v2_dot(m,m)-r*r
 
         -- check distance and ray direction vs. circle
@@ -651,11 +649,7 @@ function intersect_sub_sector(segs,p,d,tmin,tmax,radius,intersect_cb,skipthings)
     if denom>0 then
       local t=dist_a/denom
       -- within seg?
-      local pt={
-        px+t*dx,
-        py+t*dy
-      }
-      local d=v2_dot({s0[2],s0[3]},pt)-s0[4]
+      local d=s0[2]*(px+t*dx)+s0[3]*(py+t*dy)-s0[4]
       -- extended segment
       if d>=-radius and d<s0[5]+radius then
         local dist_b,inseg=s0[8]-v2_dot(n,{px+_tmax*dx,py+_tmax*dy}),d>=0 and d<s0[5]
@@ -679,6 +673,7 @@ end
 
 -- scan attack (e.g. will hit anything in range)
 function hitscan_attack(owner,angle,range,dmg,puff)
+  -- todo: get height from properties
   local h,move_dir=owner[3]+32,{cos(angle),-sin(angle)}
   _intersectid+=1
   intersect_sub_sector(owner.ssector,owner,move_dir,owner.actor.radius/2,range,0,function(hit)    
@@ -693,7 +688,6 @@ function hitscan_attack(owner,angle,range,dmg,puff)
       -- actual hit position
       local pos={owner[1],owner[2]}
       v2_add(pos,move_dir,fix_move.ti)
-      -- todo: get height from properties
       add_thing(make_thing(puff,pos[1],pos[2],h,angle))
 
       -- hit thing
@@ -706,14 +700,16 @@ end
 -- returns distance and normal to target (if visible)
 function line_of_sight(thing,otherthing,maxdist)
   -- pvs check
-  local id,n,d=otherthing.ssector.id,v2_normal(v2_make(thing,otherthing))
-  if(band(thing.ssector.pvs[id\32],0x0.0001<<(id&31))==0) return n
+  local n,d=v2_normal(v2_make(thing,otherthing))
+  if(not thing.ssector:in_pvs(otherthing.ssector.id)) return n
 
   -- in radius?
   d=max(d-thing.actor.radius)
   if d<maxdist then
     -- line of sight?
     local h=thing[3]+24
+    -- artificially level floating actors to their target
+    if(thing.actor.floating) h=otherthing[3]+24
     _intersectid+=1
     intersect_sub_sector(thing.ssector,thing,n,0,d,0,function(hit)
       -- cannot see
@@ -785,15 +781,16 @@ function with_physic(thing)
   return inherit({
     apply_forces=function(self,x,y,mag)
       -- todo: review arbitrary factor...
-      forces[1]+=64*mag*x/mass
-      forces[2]+=64*mag*y/mass
+      mag<<=6
+      forces[1]+=mag*x/mass
+      forces[2]+=mag*y/mass
     end,
     update=function(self)
       -- integrate forces
       v2_add(velocity,forces)
-      -- floating actor?
-      if actor.is_float and self.target then
-        dz+=mid((self.target[3]-self[3])>>4,-2,2)
+      -- alive floating actor? : track target height
+      if not self.dead and actor.floating and self.target then
+        dz+=mid((self.target[3]+rnd(16)-self[3])>>8,-2,2)
         -- avoid woobling
         dz*=friction
       end
@@ -839,7 +836,7 @@ function with_physic(thing)
               v2_add(self,move_dir,fix_move.ti)
               velocity={0,0}
               -- explosion sound (if any)
-              if(actor.deathsound) sfx(actor.deathsound)
+              if(actor.deathsound and ss:in_pvs(_plyr.ssector.id)) sfx(actor.deathsound)
               -- death state
               self:jump_to(5)
               -- hit thing
@@ -916,7 +913,7 @@ function with_physic(thing)
             end)
           end
           -- not fall damage or sector damage for floating actors
-          if not actor.is_float and actor.is_shootable then
+          if not actor.floating and actor.is_shootable then
             -- fall damage
             -- see: https://zdoom.org/wiki/Falling_damage
             local dmg=(((dz*dz)>>7)*11-30)\2
@@ -1181,16 +1178,13 @@ function draw_bsp()
   cls()
   --
   -- draw bsp & visible things
-  local pvs,v_cache=_plyr.ssector.pvs,{}
+  local id,v_cache=_plyr.ssector.id,{}
 
   -- visit bsp
   visit_bsp(_bsp,_plyr,function(node,side,pos,visitor)
     if node.leaf[side] then
       local subs=node[side]
-      -- potentially visible?
-      local id=subs.id
-      -- use band to support gaps (nil) in pvs hashmap
-      if band(pvs[id\32],0x0.0001<<(id&31))!=0 then
+      if subs:in_pvs(id) then
         draw_flats(v_cache,subs)
       end
     elseif _cam:is_visible(node.bbox[side]) then
@@ -1512,7 +1506,7 @@ function unpack_special(sectors,actors)
       -- save player's state
       _plyr:save()
 
-      -- record level completion time
+      -- record level completion time + send stats
       load(mod_name.."_0.p8",nil,_skill..",".._map_id..",2,"..(time()-_start_time)..",".._kills..",".._monsters..",".._secrets)
     end
   end
@@ -1561,8 +1555,9 @@ function unpack_actors()
     -- A_PlaySound
     function()
       local s=mpeek()
-      return function()
-        sfx(s)
+      return function(self)
+        -- play sound only if visible from player
+        if(self.ssector:in_pvs(_plyr.ssector.id)) sfx(s)
       end
     end,
     -- A_FireProjectile
@@ -1726,7 +1721,7 @@ function unpack_actors()
   -- float
   -- dropoff
   -- dontfall
-  local all_flags=split("0x1,is_solid,0x2,is_shootable,0x4,is_missile,0x8,is_monster,0x10,is_nogravity,0x20,is_float,0x40,is_dropoff,0x80,is_dontfall,0x100,randomize,0x200,countkill",",",1)
+  local all_flags=split("0x1,is_solid,0x2,is_shootable,0x4,is_missile,0x8,is_monster,0x10,is_nogravity,0x20,floating,0x40,is_dropoff,0x80,is_dontfall,0x100,randomize,0x200,countkill",",",1)
   unpack_array(function()
     local kind,id,flags,state_labels,states,weapons,active_slot,inventory=unpack_variant(),unpack_variant(),mpeek()|mpeek()<<8,{},{},{}
 
@@ -1739,7 +1734,8 @@ function unpack_actors()
       -- attach actor to this thing
       attach=function(self,thing)
         -- vm state (starts at spawn)
-        local i,ticks,delay=state_labels[0],-2,flags&0x8!=0 and rnd(30)\1 or 0
+        local i,ticks,delay=state_labels[0],-2,self.is_monster and rnd(30)\1 or 0
+        if(self.randomize) delay=rnd(4)\1
 
         -- extend properties
         thing=inherit({
@@ -2020,8 +2016,12 @@ function unpack_map(skill,actors)
 
     -- convex sub-sectors
     unpack_array(function(i)
-      -- register current sub-sector in pvs
-      local segs={id=i,pvs={}}
+      local pvs={}
+      local segs={
+        id=i,
+        in_pvs=function(self,id)
+          return band(pvs[id\32],0x0.0001<<(id&31))!=0
+        end}
       unpack_array(function()
         local v,flags=verts[unpack_variant()],mpeek()
         local s=add(segs,{
@@ -2044,8 +2044,7 @@ function unpack_map(skill,actors)
       -- pvs (packed as a bit array)
       unpack_array(function()
         local id=unpack_variant()
-        local mask=segs.pvs[id\32] or 0
-        segs.pvs[id\32]=mask|0x0.0001<<(id&31)
+        pvs[id\32]=bor(pvs[id\32],0x0.0001<<(id&31))
       end)
       -- normals
       local s0=segs[#segs]
@@ -2084,14 +2083,13 @@ function unpack_map(skill,actors)
 
   -- bsp nodes
   unpack_array(function()
-    local node=add(nodes,{
+    local node,flags=add(nodes,{
       -- normal packed in struct to save memory
       unpack_fixed(),unpack_fixed(),
       -- distance to plane
       unpack_fixed(),
       leaf={}
-    })
-    local flags=mpeek()
+    }),mpeek()
     local function unpack_node(side,leaf)
       if leaf then
         node.leaf[side]=true
