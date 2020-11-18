@@ -288,19 +288,6 @@ actor Cell : Ammo 2047
 	  }
 }
 
-actor CellPack : Cell 17
-{
-  Amount 100
-  PickupSound 54
-  States
-  {
-  Spawn:
-    CELP A 6 Bright
-	CELP A 6
-    Loop
-  }
-}
-
 actor RocketAmmo : Ammo 2010
 {
 	Amount 1
@@ -459,7 +446,7 @@ actor Rocket : Projectile 9997
   Radius 11
   Height 8
   Speed 50
-  Damage 5
+  Damage 10
   +MISSILE
   States
   {
@@ -468,7 +455,7 @@ actor Rocket : Projectile 9997
 	// blast on TTL
   Death:
     MISL B 1 Bright A_PlaySound(60);
-    MISL B 8 Bright A_Explode(15, 80);
+    MISL B 8 Bright A_Explode(50, 96);
     MISL C 6 Bright
     MISL D 4 Bright
     Stop
@@ -661,7 +648,7 @@ actor Cacodemon: Monster 3002
 	Health 150
 	Radius 32
 	Height 56
-	Speed 6
+	Speed 48
 	PainChance 200
 	MeleeRange 64
 	Mass 500
@@ -694,6 +681,7 @@ actor Cacodemon: Monster 3002
 		HEAD H 5
 		HEAD I 5
 		HEAD J 5
+		HEAD K 10
 		HEAD K -1
 		Stop
 	}
@@ -706,8 +694,8 @@ actor LostSoul: Monster 3006
 	Height 56
 	Speed 16
 	PainChance 200
-	MeleeRange 128
-	Damage 3
+	MeleeRange 256
+	Damage 0
 	Mass 75
 	+FLOAT
 	+NOGRAVITY
@@ -729,7 +717,7 @@ actor LostSoul: Monster 3006
 			SKUL F 4 Bright  
 			SKUL E 4 Bright A_SkullAttack;
 			SKUL F 4 Bright 
-			SKUL A 1 Bright A_MeleeAttack(5, "BloodPuff");
+			SKUL A 1 Bright A_MeleeAttack(15, "BloodPuff");
 			SKUL A 3 Bright A_PlaySound(51);
 			SKUL B 4 Bright
 			Goto See
@@ -747,7 +735,7 @@ actor LostSoul: Monster 3006
 			Goto See
 	  Death:
 		SKUL H 1 Bright A_PlaySound(60);
-		SKUL H 8 Bright A_Explode(10, 40);
+		SKUL H 8 Bright A_Explode(10, 72);
 		MISL B 8 Bright
 		MISL C 6 Bright
 		MISL D 4 Bright

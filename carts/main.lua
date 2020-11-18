@@ -707,13 +707,13 @@ function line_of_sight(thing,otherthing,maxdist)
   d=max(d-thing.actor.radius)
   if d<maxdist then
     -- line of sight?
-    local h=thing[3]+24
+    local h=thing[3]
     -- artificially level floating actors to their target
-    if(thing.actor.floating) h=otherthing[3]+24
+    if(thing.actor.floating) h=otherthing[3]
     _intersectid+=1
     intersect_sub_sector(thing.ssector,thing,n,0,d,0,function(hit)
       -- cannot see
-      if(intersect_line(hit.seg,h,0,0,true,true)) d=nil return true
+      if(intersect_line(hit.seg,h+24,0,0,true,true)) d=nil return true
     end,true)
     -- normal and distance to hit
     return n,d
@@ -789,8 +789,9 @@ function with_physic(thing)
       -- integrate forces
       v2_add(velocity,forces)
       -- alive floating actor? : track target height
-      if not self.dead and actor.floating and self.target then
-        dz+=mid((self.target[3]+rnd(16)-self[3])>>8,-2,2)
+      if not self.dead and actor.floating then
+        --dz+=rnd(1.8)-0.9
+        if(self.target) dz+=mid((self.target[3]-self[3])>>8,-2,2)
         -- avoid woobling
         dz*=friction
       end
@@ -799,8 +800,7 @@ function with_physic(thing)
 
       -- friction     
       velocity[1]*=friction
-      velocity[2]*=friction
-      
+      velocity[2]*=friction      
       -- check collision with world
       local move_dir,move_len=v2_normal(velocity)
       
@@ -885,7 +885,7 @@ function with_physic(thing)
       -- triggers?
       -- check triggers/bumps/...
       if is_player then
-        intersect_sub_sector(ss,self,{cos(self.angle),-sin(self.angle)},0,radius+24,0,function(hit)
+        intersect_sub_sector(ss,self,{cos(self.angle),-sin(self.angle)},0,radius+48,0,function(hit)
           local ldef=hit.seg.line
           -- buttons
           if ldef.trigger and ldef.flags&0x8>0 then
@@ -904,9 +904,8 @@ function with_physic(thing)
         if h<sector.floor then
           -- found secret?
           if is_player and sector.special==195 and not _found[sector] then
-            _found[sector]=true
+            _found[sector],_msg=true,"found secret!"
             _secrets+=1
-            _msg="found secret!"
             do_async(function()
               wait_async(30)
               _msg=nil
@@ -1046,6 +1045,9 @@ function attach_plyr(thing,actor,skill)
             if(_btns[0]) da-=0.75
             if(_btns[1]) da+=0.75
           end
+          -- direct mouse input?
+          da+=peek(0x5f80)*(128-peek(0x5f81))/24
+
           if(_btns[2]) dz=1
           if(_btns[3]) dz=-1
 
@@ -1283,7 +1285,7 @@ function play_state()
     
       print(cpu,2,3,3)
       print(cpu,2,2,15)    
-      ]]
+      ]]      
     end
 end
 
@@ -1340,8 +1342,7 @@ function _init()
   local p=split(stat(6))
   _skill,_map_id=tonum(p[1]) or 2,tonum(p[2]) or 1
   -- sky texture
-  local id=_map_id*2-2
-  _sky_height,_sky_offset=_maps_sky[id+1],_maps_sky[id+2]
+  _sky_height,_sky_offset=_maps_sky[_map_id*2-1],_maps_sky[_map_id*2]
   -- skybox fill pattern
   fillp(0xaaaa)
 
@@ -1544,28 +1545,23 @@ function unpack_actors()
     function()
       local xspread,yspread,bullets,dmg,puff=unpack_fixed(),unpack_fixed(),mpeek(),mpeek(),unpack_actor_ref(actors)
       return function(owner)
-        -- find 'real' owner
-        owner=owner.owner or owner
         for i=1,bullets do
-          local angle=owner.angle+(rnd(2*xspread)-xspread)/360
-          hitscan_attack(owner,angle,1024,dmg,puff)
+          hitscan_attack(owner,owner.angle+(rnd(2*xspread)-xspread)/360,1024,dmg,puff)
         end
       end
     end,
     -- A_PlaySound
     function()
       local s=mpeek()
-      return function(self)
+      return function(owner)
         -- play sound only if visible from player
-        if(self.ssector:in_pvs(_plyr.ssector.id)) sfx(s)
+        if(owner.ssector:in_pvs(_plyr.ssector.id)) sfx(s)
       end
     end,
     -- A_FireProjectile
     function()
       local projectile=unpack_actor_ref(actors)
       return function(owner)
-        -- find 'real' owner
-        owner=owner.owner or owner
         -- fire at 1/2 edge of owner radius (ensure collision when close to walls)
         local angle,speed,radius=owner.angle,projectile.speed,owner.actor.radius/2
         local ca,sa=cos(angle),-sin(angle)
@@ -1578,9 +1574,9 @@ function unpack_actors()
     end,
     -- A_WeaponReady
     function(item)
-      return function(weapon)
+      return function(owner,weapon)
         if not _wp_hud and btn(❎) then
-          local inventory,ammotype,newqty=weapon.owner.inventory,item.ammotype,0
+          local inventory,ammotype,newqty=owner.inventory,item.ammotype,0
           -- handle "fist" (eg weapon without ammotype)
           if(ammotype) newqty=inventory[ammotype]-item.ammouse
           if newqty>=0 then
@@ -1684,8 +1680,6 @@ function unpack_actors()
     function()
       local dmg,puff=mpeek(),unpack_actor_ref(actors)
       return function(owner)
-        -- find 'real' owner
-        owner=owner.owner or owner
         hitscan_attack(owner,owner.angle,owner.meleerange or 64,dmg,puff)
       end
     end,
@@ -1770,7 +1764,8 @@ function unpack_actors()
               -- get ticks
               ticks=state[1]
               -- trigger function (if any)
-              if(state.fn) state.fn(self)
+              -- provide owner and self (eg. for weapons)
+              if(state.fn) state.fn(self.owner or self,self)
             end
           end
         },thing)

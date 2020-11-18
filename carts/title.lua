@@ -76,7 +76,7 @@ function menu_state()
     },sel=2,max=2}},1,0
 
   -- read max level reached
-  local max_map_id=dget(32)
+  local max_map_id=5 --dget(32)
   if(max_map_id>#_maps_label) max_map_id=#_maps_label dset(32,max_map_id)
   if(max_map_id<=0) max_map_id=1 dset(32,max_map_id)
 
