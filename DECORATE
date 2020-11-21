@@ -144,6 +144,7 @@ actor YellowCard:Key 6
  PickupSound 61
  HUDColor 11
  Icon 17
+ +SHOOTABLE
  States
  {
   Spawn:
@@ -752,7 +753,7 @@ actor Cyberdemon: Monster 16
 	Speed 160
 	PainChance 20
 	MeleeRange 338
-	
+	+NOSECTORDMG
 	States
 	{
 		Spawn:
