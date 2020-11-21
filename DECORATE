@@ -272,9 +272,9 @@ actor BulletPuff 9999
 	PUFF E 3
     Stop
   Pain:
-	BLOD A 8
+	BLOD A 4
     BLOD B 4
-	BLOD C 6
+	BLOD C 4
 	Stop
   }
 }
