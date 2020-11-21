@@ -239,6 +239,23 @@ actor ExplosiveBarrel 2035
   }
 }
 
+actor RocketTrail 9993
+{
+  +NOGRAVITY
+  +RANDOMIZE
+  States
+  {
+  Spawn:
+    PUFF B 2 Bright
+    PUFF C 2 Bright
+    // Intentional fall-through
+  Melee:
+    PUFF D 2 Bright
+	PUFF E 2 Bright
+    Stop
+  }
+}
+
 actor BulletPuff 9999
 {
   +NOGRAVITY
@@ -246,12 +263,13 @@ actor BulletPuff 9999
   States
   {
   Spawn:
-    PUFF A 5 Bright
+    PUFF A 3 Bright
     PUFF B 3
     // Intentional fall-through
   Melee:
     PUFF C 3
     PUFF D 3
+	PUFF E 3
     Stop
   Pain:
 	BLOD A 8 Bright
@@ -453,6 +471,7 @@ actor Rocket : Projectile 9997
   Height 8
   Speed 50
   Damage 10
+  TrailType "RocketTrail"
   +MISSILE
   States
   {
@@ -627,7 +646,7 @@ actor DoomImp: Monster 3001
 	}
 }
 
-actor CacodemonBall: Projectile 9995
+actor CacodemonBall: Projectile 9994
 {
   Radius 6
   Height 8
