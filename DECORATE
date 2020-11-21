@@ -246,12 +246,12 @@ actor RocketTrail 9993
   States
   {
   Spawn:
-    PUFF B 2 Bright
-    PUFF C 2 Bright
+    PUFF B 2
+    PUFF C 2
     // Intentional fall-through
   Melee:
-    PUFF D 2 Bright
-	PUFF E 2 Bright
+    PUFF D 2
+	PUFF E 2
     Stop
   }
 }
@@ -272,8 +272,8 @@ actor BulletPuff 9999
 	PUFF E 3
     Stop
   Pain:
-	BLOD A 8 Bright
-    BLOD B 4 Bright
+	BLOD A 8
+    BLOD B 4
 	BLOD C 6
 	Stop
   }
