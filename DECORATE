@@ -231,10 +231,10 @@ actor ExplosiveBarrel 2035
     BAR1 A -1
     Stop
   Death:
-    BAR1 A 10 Bright A_PlaySound(60)
-    BEXP C 5 Bright
-    BEXP D 5 Bright A_Explode(100, 128);
-    BEXP E 10 Bright
+    BAR1 A 1 Bright A_PlaySound(60)
+    EXPB B 6 Bright A_Explode(100, 128);
+    EXPB E 6 Bright
+    EXPB F 8 Bright
     Stop
   }
 }
@@ -251,8 +251,13 @@ actor BulletPuff 9999
     // Intentional fall-through
   Melee:
     PUFF C 3
-	PUFF D 3
+    PUFF D 3
     Stop
+  Pain:
+	BLOD A 8 Bright
+    BLOD B 4 Bright
+	BLOD C 6
+	Stop
   }
 }
 
@@ -455,10 +460,11 @@ actor Rocket : Projectile 9997
     MISL A 120 Bright
 	// blast on TTL
   Death:
-    MISL B 1 Bright A_PlaySound(60);
-    MISL B 8 Bright A_Explode(50, 96);
-    MISL C 6 Bright
-    MISL D 4 Bright
+    EXPL A 1 Bright A_PlaySound(60);
+    EXPL A 3 Bright A_Explode(50, 96);
+    EXPL B 4 Bright
+	EXPL E 4 Bright
+    EXPL F 4 Bright
     Stop
   }
 }
@@ -574,8 +580,9 @@ actor DoomImpBall: Projectile 9995
     BAL1 A 120 Bright
     Stop
   Death:
-    BAL1 C 6 Bright A_PlaySound(59);
-	BAL1 E 6 Bright
+	EXPL A 4 Bright A_PlaySound(59);
+	EXPL E 4 Bright
+    EXPL F 4 Bright
     Stop
   }
 }
@@ -638,8 +645,9 @@ actor CacodemonBall: Projectile 9995
 	BAL2 B 3 Bright
     Loop
   Death:
-    BAL1 C 6 Bright A_PlaySound(59);
-	BAL1 E 6 Bright
+    EXPL A 4 Bright A_PlaySound(59);
+	EXPL E 4 Bright
+    EXPL F 4 Bright
     Stop
   }
 }
@@ -737,9 +745,9 @@ actor LostSoul: Monster 3006
 	  Death:
 		SKUL H 1 Bright A_PlaySound(60);
 		SKUL H 8 Bright A_Explode(10, 72);
-		MISL B 8 Bright
-		MISL C 6 Bright
-		MISL D 4 Bright
+		EXPP B 4 Bright
+		EXPP E 4 Bright
+		EXPP F 4 Bright
 		Stop
 	}
 }
