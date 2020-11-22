@@ -125,6 +125,7 @@ actor BlueCard:Key 5
  PickupSound 61
  HUDColor 15
  Icon 17
+ +SHOOTABLE
  States
  {
   Spawn:
@@ -144,7 +145,6 @@ actor YellowCard:Key 6
  PickupSound 61
  HUDColor 11
  Icon 17
- +SHOOTABLE
  States
  {
   Spawn:
@@ -246,12 +246,12 @@ actor RocketTrail 9993
   States
   {
   Spawn:
-    PUFF B 2
-    PUFF C 2
+    PUFF B 1
+    PUFF C 1
     // Intentional fall-through
   Melee:
-    PUFF D 2
-	PUFF E 2
+    PUFF D 1
+	PUFF E 1
     Stop
   }
 }
@@ -454,7 +454,7 @@ actor ShotGun : Weapon 2001
 			Loop
 		Fire:
 			SHTG B 1 Bright A_Light(160)
-			SHTG B 5 Bright A_FireBullets(10,0,3,7,"BulletPuff");
+			SHTG B 5 Bright A_FireBullets(7,0,3,7,"BulletPuff");
 			SHTG A 4
 			SHTG D 15
 			SHTG A 7
@@ -742,7 +742,7 @@ actor LostSoul: Monster 3006
 		Melee:
 			SKUL A 4 Bright A_FaceTarget;
 			SKUL E 4 Bright A_SkullAttack;
-			SKUL F 4 Bright  
+			SKUL F 4 Bright A_MeleeAttack(15, "BloodPuff");
 			SKUL E 4 Bright A_SkullAttack;
 			SKUL F 4 Bright 
 			SKUL A 1 Bright A_MeleeAttack(15, "BloodPuff");

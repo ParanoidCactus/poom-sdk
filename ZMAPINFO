@@ -1,4 +1,4 @@
-map E1M3 "hANGER"
+map E1M3 "hANGAR"
 {
 	levelnum = 1
 	next = "E1M4"
