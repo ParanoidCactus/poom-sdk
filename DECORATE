@@ -600,8 +600,8 @@ actor DoomImpBall: Projectile 9995
     Stop
   Death:
 	EXPL A 4 Bright A_PlaySound(59);
-	EXPL E 4 Bright
-    EXPL F 4 Bright
+	BAL1 D 4 Bright
+    BAL1 E 4 Bright
     Stop
   }
 }
@@ -665,8 +665,8 @@ actor CacodemonBall: Projectile 9994
     Loop
   Death:
     EXPL A 4 Bright A_PlaySound(59);
-	EXPL E 4 Bright
-    EXPL F 4 Bright
+	BAL1 D 4 Bright
+    BAL1 E 4 Bright
     Stop
   }
 }
