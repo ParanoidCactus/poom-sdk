@@ -4,6 +4,7 @@ map E1M3 "hANGAR"
 	next = "E1M4"
 	music = 0
 	sky1 = "SKYBOX"
+	location = 32,85
 }
 
 map E1M4 "tRITON lAB"
@@ -12,14 +13,16 @@ map E1M4 "tRITON lAB"
 	next = "E1M2"
 	music = 0
 	sky1 = "SKYBOX"
+	location = 40,88
 }
 
-map E1M2 "aVERNUS aNNEXE"
+map E1M2 "aVERNUS aNNEX"
 {
 	levelnum = 3
 	next = "E2M1"
 	music = 0
 	sky1 = "SKYBOX"
+	location = 54,92
 }
 
 map E2M1 "tHE dEFILED rEALM"
@@ -28,6 +31,7 @@ map E2M1 "tHE dEFILED rEALM"
 	next = "E2M2"
 	music = 0
 	sky1 = "SKYBOX"
+	location = 66,94
 }
 
 map E2M2 "hALLS OF eTERNAL pAIN"
@@ -36,6 +40,7 @@ map E2M2 "hALLS OF eTERNAL pAIN"
 	next = "E2M3"
 	music = 21
 	sky1 = "SKYBOX"
+	location = 72,104
 }
 
 map E2M3 "sANCTUM OF tORMENT"
@@ -44,4 +49,10 @@ map E2M3 "sANCTUM OF tORMENT"
 	next = "endgame"
 	music = 21
 	sky1 = "SKYBOX"
+	location = 88,110
+}
+
+gameinfo {
+  // pico8 casing is "reversed"
+  credits = "gAME eNGINE:,@fsouchu,lEVEL dESIGN+aRT+sOUND:,@gamecactus,oRIGINAL mATERIAL:,iD sOFTWARE,rEFERENCE mATERIAL:,zdOOM wIKI,bsp eDITOR:,sLADE 3+zbsp,sPECIAL tHANKS:,zEP,@tHATtOMhALL,@JUSIV,@NANARK_"
 }

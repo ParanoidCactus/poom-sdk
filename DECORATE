@@ -299,7 +299,7 @@ actor BloodPuff 9996
 actor Cell : Ammo 2047
 {
 	Amount 20
-	MaxAmount 300
+	MaxAmount 100
 	PickupSound 54
 	// zap pico8 character
 	Icon 150
@@ -394,8 +394,8 @@ actor PlasmaBall : Projectile 9998
 {
 	Radius 13
 	Height 8
-	Speed 100
- 	Damage 2
+	Speed 80
+ 	Damage 5
  +MISSILE
  States
 	{
@@ -430,7 +430,7 @@ actor PlasmaRifle : Weapon 2004
 		Fire:
 			PLSG A 1 Bright A_Light(160)
 			PLSG A 2 Bright A_FireProjectile("PlasmaBall");
-			PLSG A 4
+			PLSG A 8
 			Goto Ready
 		Ready:
 			PLSG A 1 A_WeaponReady;
@@ -521,6 +521,7 @@ actor ChainGun : Weapon 2002
 	SlotNumber 2
 	AttackSound 55
 	PickupSound 54
+	Drag 0.25
 	States {
 		Spawn:
 			MGUN A 5
@@ -717,7 +718,7 @@ actor Cacodemon: Monster 3002
 
 actor LostSoul: Monster 3006
 {
-	Health 60
+	Health 50
 	Radius 16
 	Height 56
 	Speed 16
@@ -779,7 +780,7 @@ actor Cyberdemon: Monster 16
 	Mass 1000
 	Speed 160
 	PainChance 20
-	MeleeRange 338
+	MeleeRange 354
 	+NOSECTORDMG
 	States
 	{
@@ -787,55 +788,66 @@ actor Cyberdemon: Monster 16
 			CYBR A 4 A_Look;
 			Loop
 		See:
-			CYBR A 5
+			CYBR A 5 A_SkullAttack;
+			CYBR B 5
+			CYBR A 5 A_SkullAttack;
 			CYBR B 4
 			CYBR B 1 A_Chase;
 			Loop
 		Melee:
 			CYBR A 6 A_FaceTarget;
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 A_FaceTarget;
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 3 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
-			CYBR A 6
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR A 6 A_SkullAttack;
 			Goto See
 		Missile:
 			CYBR A 4 A_FaceTarget;
 			CYBR A 1 A_PlaySound(57);
 			CYBR F 3 Bright A_FireProjectile("Rocket");
-			CYBR F 3
+			CYBR F 6 A_SkullAttack;
 			CYBR A 4 A_FaceTarget;
 			CYBR A 1 A_PlaySound(57);
 			CYBR F 3 Bright A_FireProjectile("Rocket");
-			CYBR F 3
+			CYBR F 6 A_SkullAttack;
 			CYBR A 4 A_FaceTarget;
 			CYBR A 1 A_PlaySound(57);
 			CYBR F 3 Bright A_FireProjectile("Rocket");
-			CYBR F 3
+			CYBR F 3 A_SkullAttack;
 			CYBR A 5 A_SkullAttack;
 			CYBR B 5 A_SkullAttack;
 			CYBR A 5 A_SkullAttack;
 			CYBR B 5 A_SkullAttack;
 			Goto See
 		Death:
+			CYBR H 8 A_PlaySound(60);
+			CYBR I 8 A_PlaySound(60);
 			CYBR J 8
 			CYBR K 6
-			CYBR L 6
-			CYBR P -1
+			CYBR L -1
 			Stop
 	}
 }

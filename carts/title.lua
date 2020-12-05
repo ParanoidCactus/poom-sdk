@@ -8,15 +8,25 @@ function btnp(b)
 end
 
 -- copy image text to spritesheet/memory
-function unpack_gfx(src,rows)
-  local addr=rows and 0x4e00 or 0x0
-  rows=rows or 0
+function unpack_gfx(src)
+  local offset=src.h-128
+  local addr=offset>0 and 0x4e00 or 0x0
+  offset=max(offset)
+  src=src.bytes
   for i=0,#src-1 do
     poke(addr,ord(src,i+1))
     addr+=1
-    if (addr>0x4e00+64*rows-1) addr=0x0
+    if (addr>0x4e00+64*offset-1) addr=0x0
   end
 end
+
+-- assumes unpack_gfx called before
+function draw_gfx(src)
+  local offset=src.h-128
+  memcpy(0x6000,0x4e00,64*offset)
+  spr(0,0,offset,16,16)
+end
+
 
 -- game states
 function next_state(fn,...)
@@ -26,9 +36,12 @@ function next_state(fn,...)
     -- init function (if any)
     if(i) i()
     -- 
-    _update,_draw=u,d
+    _draw=d
     -- actually run the update
     u()
+        
+    -- gif capture handling
+    if(peek(0x5f83)==1) extcmd("video") poke(0x5f83)
   end
 end
 
@@ -48,8 +61,7 @@ function start_state()
     function()
       cls()
       pal()
-      memcpy(0x6000,0x4e00,64*13)
-      spr(0,0,13,16,15)    
+      draw_gfx(title_gfx)
       printb("@fsouchu",2,121,vcol(4))
       printb("@gamecactus",83,121,vcol(4))
 
@@ -60,11 +72,12 @@ function start_state()
       -- reset any bitplane masking
       poke(0x5f5e,0xff)
 
-      unpack_gfx(title_gfx.bytes,13)
+      unpack_gfx(title_gfx)
     end  
 end
 
 function menu_state()
+  local mouse_ttl,mouse_x,mouse_y=0,0,0
   local menus,menu_i,anm_ttl={
     {"wHICH ePISODE?",_maps_label,sel=1,max=1},
     {"sELECT sKILL lEVEL",
@@ -76,7 +89,7 @@ function menu_state()
     },sel=2,max=2}},1,0
 
   -- read max level reached
-  local max_map_id=5 --dget(32)
+  local max_map_id=dget(32)
   if(max_map_id>#_maps_label) max_map_id=#_maps_label dset(32,max_map_id)
   if(max_map_id<=0) max_map_id=1 dset(32,max_map_id)
 
@@ -85,24 +98,51 @@ function menu_state()
 
   return
     function()
+      -- mouse?
+      if peek(0x5f80)==1 then
+        mouse_ttl=30
+        mouse_x+=(128-peek(0x5f81))/2
+        mouse_y+=(128-peek(0x5f82))/2
+        mouse_x=mid(mouse_x,0,126)
+        mouse_y=mid(mouse_y,0,126)
+      end
+      if mouse_ttl>0 then
+        mouse_ttl-=1
+        -- reset control scheme if using mouse
+        switch_scheme(0)
+      end
+      poke(0x5f80,0)
+
       anm_ttl=(anm_ttl+1)%48
       if menu_i>0 then
         local active_sel=menus[menu_i].sel
-        if btnp(2) then
-          active_sel-=1
-          sfx(0)
+        if mouse_ttl>0 then
+          local prev_sel=active_sel
+          for i=1,#menus[menu_i][2] do
+            if i<=menus[menu_i].max and mouse_y>69+i*8 and mouse_y<=75+i*8 then
+              active_sel=i
+            end
+          end   
+          if(prev_sel!=active_sel) sfx(0)
+        else
+          if btnp(2) then
+            active_sel-=1
+            sfx(0)
+          end
+          if btnp(3) then
+            active_sel+=1
+            sfx(0)
+          end
+          -- unlocked?
+          active_sel=mid(active_sel,1,menus[menu_i].max)
         end
-        if btnp(3) then
-          active_sel+=1
-          sfx(0)
-        end
-        -- unlocked?
-        menus[menu_i].sel=mid(active_sel,1,menus[menu_i].max)
+        menus[menu_i].sel=active_sel
       end
-      if btnp(5) then
+
+      if btnp(❎) then
         if(menu_i>1)sfx(0)
         menu_i=max(1,menu_i-1)
-      elseif btnp(4) then
+      elseif btnp(🅾️) then
         if(menu_i>0)sfx(1)
         menu_i+=1
         if menu_i>#menus then
@@ -115,15 +155,13 @@ function menu_state()
       if (menu_i>#menus)return
 
       cls()
-      memcpy(0x6000,0x4e00,64*13)
-      spr(0,0,13,16,15)    
-      printb("@fsouchu",2,121,vcol(4))
-      printb("@gamecactus",83,121,vcol(4))
+      draw_gfx(title_gfx)
+      printb("@FSOUCHU",2,0,vcol(2))
+      printb("@GAMECACTUS",83,0,vcol(2))
 
       -- dark menu background
-      -- todo: fix
       for i=0,15 do
-        pal(vcol(i),sget(112+i,129-13))
+        pal(vcol(i),sget(112+i,128-11))
         --pset(i,0,i)
       end
       sspr(12,51,104,15+#menus[menu_i][2]*8,12,64)
@@ -136,7 +174,7 @@ function menu_state()
       rectfill(18,68+menus[menu_i].sel*8,113,75+menus[menu_i].sel*8,vcol(2))
       palt(vcol(0),false)
       palt(vcol(4),true)
-      sspr(anm_ttl\12*10,115,11,12,14,65+menus[menu_i].sel*8)
+      sspr(anm_ttl\12*10,116,11,12,14,65+menus[menu_i].sel*8)
       palt()
 
       -- menu items
@@ -146,11 +184,13 @@ function menu_state()
         printb(s,28,69+i*8,i<=menus[menu_i].max and vcol(4) or vcol(3))
       end
       
+      if(mouse_ttl>0) palt(vcol(4),true) sspr(41,116,10,10,mouse_x,mouse_y) palt()
+
       pal(title_gfx.pal,1)
     end,
     -- init
     function()
-      unpack_gfx(title_gfx.bytes,13)
+      unpack_gfx(title_gfx)
     end  
 end
 
@@ -225,19 +265,36 @@ function launch_state(skill,id,level_time,kills,secrets)
     end,
     function()
       cls()
-      spr(0,0,0,16,16)
+      draw_gfx(loading_gfx)
       pal(loading_gfx.pal,1)
       local s="eNTERING ".._maps_label[id]
-      printb(s,63-#s*2,80,15)
+      local texty=40
+      printb(s,63-#s*2,texty,15)
+
+      -- location marker
+      local x,y=_maps_loc[id*2-1],_maps_loc[id*2]
+      -- valid
+      if x!=-1 then
+        -- outline location name
+        rect(63-#s*2-2,texty-2,63+#s*2,texty+6,15)
+
+        -- left or right anchor
+        local xanchor=x<64 and 63-#s*2-2 or 63+#s*2
+        line(xanchor,texty+6,xanchor,y,15)
+        line(x,y)
+        circfill(x,y,2)
+      end
     end,
     function()
-      unpack_gfx(loading_gfx.bytes)
+      unpack_gfx(loading_gfx)
     end
 end
 
 
 function credits_state()  
   local ttl=0
+  local dither_pat={0b1111111111111111,0b0111111111111111,0b0111111111011111,0b0101111111011111,0b0101111101011111,0b0101101101011111,0b0101101101011110,0b0101101001011110,0b0101101001011010,0b0001101001011010,0b0001101001001010,0b0000101001001010,0b0000101000001010,0b0000001000001010,0b0000001000001000,0b0000000000000000}  
+  local t,creditsi={},0
   return
     -- update
     function()
@@ -246,43 +303,45 @@ function credits_state()
         next_state(start_state)
       end
 
-      ttl+=0.25
+      ttl+=1
     end,
     -- draw
     function()
-      -- doom fire!
-      -- credits: https://fabiensanglard.net/doom_fire_psx/index.html
-
-      -- draw 'fire plane'
-      poke(0x5f5e,0x77)
-      for x=0,127 do
-        for y=127,100,-1 do
-          local c=pget(x,y)
-          -- decay
-          pset((x+rnd(2)-1)&127,y-1,rnd()>0.5 and min(c+1,7) or c)
-        end
-      end
-      -- draw 'text plane'
-      poke(0x5f5e,0x88)      
-      rectfill(0,0,127,127,0)
-      local y=128-ttl
-      pal(1,8)
-      sspr(0,0,128,13,0,y,128,13)
-      pal()
-      y+=128
-      for i,t in ipairs(_credits) do
-        print(t,64-#t*2,y,8)
-        y+=7
-      end
-      pal({[0]=0,7,10,9,8,2,1,0,8,10,9,8,2,8,2,8},1)
-    end,
-    function()
       cls()
       pal()
-      -- seed
-      memset(0x7fc0,0x11,64)
-      -- 
-      unpack_gfx(endgame_gfx.bytes)
+      draw_gfx(endgame_gfx)
+      
+      local i=flr(#_credits*ttl/600)
+      if i!=creditsi then
+        t={}
+        creditsi=i
+      end
+      -- input strings + patterns
+      local s,fadein,fadeout=_credits[(creditsi%#_credits)+1]," ⁘⁙□■▮","▮■□⁙⁘"
+      -- result string to display
+      local sp=""
+      for i=1,#s do
+        t[i]=t[i] or -rnd(1)
+        t[i]+=0.1
+        -- character strip animation (fade in/char/fade out)
+        local st=fadein
+        for k=1,30 do
+          st=st..sub(s,i,i)
+        end
+        st=st..fadeout
+        -- pick a caracter from the strip
+        local j=max(flr(#st*t[i]/3))+1        
+        sp=sp..sub(st,j,j)
+      end
+      print(sp,64-#sp*2,80,4)
+
+      if(ttl>0 and time()%4<2) print("🅾️/❎\23MENU",44,122,4)
+
+      pal(endgame_gfx.pal,1)      
+    end,
+    function()
+      endgame_gfx.pal[15]=0
+      unpack_gfx(endgame_gfx)
     end
 end
 
@@ -319,9 +378,31 @@ function slicefade_state(...)
       memcpy(0x0,0x6000,8192)
     end
 end
+local _scheme=0
+function switch_scheme(scheme)
+  local scheme_help={
+    {caption="keyboard mode 1",btnfire=🅾️,btnuse=❎,btndown=⬇️,btnup=⬆️,space=0x20},
+    {caption="keyboard mode 2",btnfire=⬆️,btnuse=⬇️,btndown=7,btnup=7,space=0x8}
+  }
+  _scheme=scheme or ((_scheme+1)%2)
+  local s=scheme_help[_scheme+1]
+  menuitem(1,s.caption,switch_scheme)
+  -- save scheme
+  dset(34,_scheme)
+  dset(35,s.btnfire)
+  dset(36,s.btnuse)
+  dset(37,s.btndown)
+  dset(38,s.btnup)
+
+  -- export via gpio
+  poke(0x5f83,s.space)
+end
 
 function _init()
   cartdata(mod_name)
+
+  -- control scheme
+  switch_scheme(dget(34))
 
   -- sound effects
   local addr=0x3200
@@ -334,7 +415,7 @@ function _init()
   
   -- special case for end game state
   if(state==2 and mapid+1>#_maps_group) state=4
-
+  
   local states={
     -- default
     [0]={start_state},
@@ -351,7 +432,7 @@ function _init()
   -- wait time before launching (15 frames when loading from menu to prevent audio from getting cut too short)
   launch_ttl=(state==2 or state==3) and 1 or 15
 
-  next_state(unpack(states[state]))  
+  next_state(unpack(states[state]))    
 end
 
 -->8
@@ -387,5 +468,5 @@ end
 
 -- color lookup from title image
 function vcol(c)
-  return sget(112+c,128-13)
+  return sget(112+c,128-12)
 end
