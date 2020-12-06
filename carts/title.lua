@@ -165,7 +165,7 @@ function menu_state()
         --pset(i,0,i)
       end
       palt(0,false)
-      sspr(12,51,104,15+#menus[menu_i][2]*8,12,64)
+      sspr(12,52,104,15+#menus[menu_i][2]*8,12,64)
       pal()
       
       -- title
