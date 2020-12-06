@@ -4,6 +4,7 @@ activity_log.txt
 /backup/
 /bbs/
 /carts/demos
+/carts/*_[0-9]+.p8
 /cdata
 sdl_controllers.txt
 *.bak

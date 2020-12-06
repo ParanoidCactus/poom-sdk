@@ -47,15 +47,17 @@ end
 
 -- intro screen
 function start_state()
+  local ttl=300
   -- reset saved state
   dset(0,-1)
 
   return
     -- update
     function()    
-      if btnp()!=0 then
+      if ttl<0 or btnp(4) or btnp(5) then
         next_state(menu_state)
       end  
+      ttl-=1
     end,
     -- draw
     function()
