@@ -77,25 +77,6 @@ actor MedKit : Health 2016
   }
 }
 
-actor ArmorBonus : Armor 2015
-{
-  Radius 20
-  Height 16
-  Amount 1
-  States
-  {
-  Spawn:
-    BON2 A 6 Bright
-	BON2 B 6 Bright
-	BON2 C 6 Bright
-	BON2 D 6 Bright
-	BON2 C 6 Bright
-	BON2 B 6 Bright
-    Loop
-  }
-}
-
-
 actor RedCard:Key 13
 {
  Radius 20
@@ -172,6 +153,7 @@ actor Torch 2028
  Radius 4
  Height 16
  +SOLID
+ +RANDOMIZE
  States
  {
 	Spawn:
@@ -395,7 +377,7 @@ actor PlasmaBall : Projectile 9998
 	Radius 13
 	Height 8
 	Speed 80
- 	Damage 5
+ 	Damage 4
  +MISSILE
  States
 	{
@@ -521,7 +503,7 @@ actor ChainGun : Weapon 2002
 	SlotNumber 2
 	AttackSound 55
 	PickupSound 54
-	Drag 0.25
+	Drag 0.2
 	States {
 		Spawn:
 			MGUN A 5
@@ -797,31 +779,31 @@ actor Cyberdemon: Monster 16
 		Melee:
 			CYBR A 6 A_FaceTarget;
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1 A_FaceTarget;
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 1 
 			CYBR A 1 A_PlaySound(55);
-			CYBR F 2 Bright A_FireBullets(0, 0, 1, 9, "BulletPuff");
+			CYBR F 2 Bright A_FireBullets(0, 0, 1, 6, "BulletPuff");
 			CYBR A 6 A_SkullAttack;
 			Goto See
 		Missile:
