@@ -164,6 +164,7 @@ function menu_state()
         pal(vcol(i),sget(112+i,128-11))
         --pset(i,0,i)
       end
+      palt(0,false)
       sspr(12,51,104,15+#menus[menu_i][2]*8,12,64)
       pal()
       
