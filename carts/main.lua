@@ -987,15 +987,15 @@ function attach_plyr(thing,actor)
             end
           end
         else
+          -- cursor: fwd+rotate
+          -- cursor+x: weapon switch+rotate
+          -- wasd: fwd+strafe
+          -- x: fire
           -- direct mouse input?
           if stat(38)!=0 then
             da+=stat(38)/8
             daf=0.2
           else
-            -- cursor: fwd+rotate
-            -- cursor+x: weapon switch+rotate
-            -- wasd: fwd+strafe
-            -- o: fire
             if btn(🅾️) then
               if(_btns[0]) dx=1
               if(_btns[1]) dx=-1
@@ -1367,6 +1367,7 @@ function _update()
   _update_state()
   -- capture video!
   if(peek(0x5f83)==1) poke(0x5f83,0) extcmd("video") 
+  
   _slow+=1
 end
 
