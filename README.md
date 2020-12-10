@@ -6,8 +6,11 @@ For the original SDK and modding documentation see:
 https://github.com/freds72/poom-sdk
 
 # Credits
+Programming: Frederic Souchu
 
-Original assets - Id Software (Microsoft)
+Art, Level Design & Audio: Simon Hulsinga (Paranoid Cactus)
+
+Based on Original Game by Id Software (Microsoft)
 
 ZDoom Wiki (outstanding content folks!)
 
