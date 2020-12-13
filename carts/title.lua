@@ -105,7 +105,7 @@ function start_state()
   -- reserved:
   -- 1-6: level time
   for i=1,#_maps_group do
-    dset(i,0)
+    dset(16+i,0)
   end
   -- clear gpio (for leaderboard)
   memset(0x5f83,0,32)
@@ -285,7 +285,7 @@ function stats_state(skill,id,level_time,kills,monsters,secrets,all_secrets)
   }
 
   -- record per level play time
-  dset(id,level_time)
+  dset(16+id,level_time)
   update_map_leaderboard(skill,id,level_time,nil,kills,kills==monsters,secrets==all_secrets)
 
   return
@@ -361,7 +361,7 @@ function credits_state(skill,id,level_time,kills,monsters,secrets,all_secrets)
 
   local total_time=level_time
   for i=1,id-1 do
-    local t=dget(i)
+    local t=dget(16+i)
     -- not a full run?
     if(t==0) total_time=nil break
     total_time+=t
@@ -454,7 +454,7 @@ end
 local _scheme=0
 function switch_scheme(scheme)
   local scheme_help={
-    {caption="keyboard mode 1",btnfire=❎,btnuse=🅾️,btndown=⬇️,btnup=⬆️,space=0x20},
+    {caption="keyboard mode 1",btnfire=❎,btnuse=🅾️,btndown=⬇️,btnup=⬆️,space=0x10},
     {caption="keyboard mode 2",btnfire=⬆️,btnuse=⬇️,btndown=7,btnup=7,space=0x8}
   }
   _scheme=scheme or ((_scheme+1)%2)
