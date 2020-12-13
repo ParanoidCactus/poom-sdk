@@ -2,6 +2,8 @@
 	<title>POOM by @gamecactus+@fsouchu</title>
 	<meta name="viewport" content="width=device-width, user-scalable=no">
 	<link rel="icon" type="image/png" sizes="16x16" href="##label_file##"/>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+	<script src="bin/newgroundsio.js" type="text/javascript"></script>
 	<script type="text/javascript">
 	
 		// Shell for POOM (or any fps game)
@@ -45,8 +47,169 @@
 		document.addEventListener('touchmove', {});
 		document.addEventListener('touchend', {});
 	
-	
-	
+		// newgrounds API integration
+		// see: https://bitbucket.org/newgrounds/newgrounds.io-for-javascript-html5/src/master/
+		var ngio = new Newgrounds.io.core("51226:quLdcYsS", "8CWTNALuMzjEnW6ckrEOsA==");
+		
+		// TODO: remove for release
+		// ngio.debug = true;
+
+		function onLoggedIn() {
+			console.log("Welcome " + ngio.user.name + "!");
+			
+			/* load our medals and scoreboards from the server */
+			ngio.queueComponent("Medal.getList", {}, onMedalsLoaded);
+			ngio.queueComponent("ScoreBoard.getBoards", {}, onScoreboardsLoaded);
+			ngio.executeQueue();
+		}
+
+		function onLoginFailed() {
+				console.log("There was a problem logging in: " . ngio.login_error.message );
+		}
+
+		function onLoginCancelled() {
+				console.log("The user cancelled the login.");
+		}
+
+		/* vars to record any medals and scoreboards that get loaded */
+		var medals, scoreboards;
+
+		// ensure consistent mapping between medals id and gpio pins
+		var leaderboard_pins = {
+			// medals count
+			medals: 2,
+			map: 7,
+			kills: 8,
+			// time (must reserve 4 pins)
+			time: 9,
+			// total game time
+			total_time: 19
+		};
+		// victory medals (per skill)
+		leaderboard_pins[61470] = 3;
+		leaderboard_pins[61471] = 4;
+		leaderboard_pins[61472] = 5;
+		leaderboard_pins[61473] = 6;
+
+		// secret medals (per level)
+		leaderboard_pins[61524] = 13;
+		leaderboard_pins[61525] = 14;
+		leaderboard_pins[61526] = 15;
+		leaderboard_pins[61528] = 16;
+		leaderboard_pins[61527] = 17;
+
+		// punch perfect (per level)
+		leaderboard_pins[61517] = 23;
+		leaderboard_pins[61520] = 24;
+		leaderboard_pins[61515] = 25;
+		leaderboard_pins[61519] = 26;
+		leaderboard_pins[61516] = 27;
+		leaderboard_pins[61518] = 28;
+
+		var leaderboard_level_id = [9773, 9775, 9776, 9779, 9777, 9778];
+
+		/* You could use this function to draw the medal notification on-screen */
+		function onMedalUnlocked(medal) {
+    	console.log('MEDAL GET:', medal.name);
+		}
+
+		function postTimeScore(id, pin) {
+				var time = pico8_gpio[pin] | pico8_gpio[pin+1]<<8 | pico8_gpio[pin+2]<<16 | pico8_gpio[pin+3]<<24;				
+				if (time>0) {					
+					time = Math.round(1000 * time/(1<<16));
+					ngio.callComponent('ScoreBoard.postScore', {id: id, value: time});
+				}
+		}
+
+		function achievementListener() {
+			var medal;
+			var pin;
+			for (var i = 0; i < medals.length; i++) {
+				medal = medals[i];				
+				pin = leaderboard_pins[medal.id];
+				if(!medal.unlocked && pico8_gpio[pin]>0) {
+					/* unlock the medal from the server */
+					ngio.callComponent('Medal.unlock', {id:medal.id}, function(result) {
+						if (result.success) onMedalUnlocked(result.medal);
+					});
+
+					// reset status
+					pico8_gpio[pin] = 0;
+				}
+			}			
+
+			// new score?
+			var map_id = pico8_gpio[leaderboard_pins.map];
+			if(map_id>0) {
+				console.log("Completed map: " + map_id);
+
+				// kills
+				ngio.callComponent('ScoreBoard.postScore', {id: 9774, value: pico8_gpio[leaderboard_pins.kills]});
+
+				// level time
+				postTimeScore(leaderboard_level_id[map_id-1], leaderboard_pins.time);
+
+				// total time (if any)
+				postTimeScore(9784, leaderboard_pins.total_time);
+
+				// reset pin
+				pico8_gpio[leaderboard_pins.map] = 0;
+			}
+
+			requestAnimationFrame(achievementListener);
+		}
+
+		/* handle loaded medals */
+		function onMedalsLoaded(result) {
+				if (result.success) {
+					medals = result.medals;
+					// copy medals to gpio
+					var medal;
+					for (var i = 0; i < medals.length; i++) {
+						medal = medals[i];
+						console.log("MEDAL STATUS:" + medal.id + " " + medal.name + " => " + medal.unlocked);
+						// medal status
+						pico8_gpio[leaderboard_pins[medal.id]] = medal.unlocked?1:0;
+					}
+					// medals loaded
+					pico8_gpio[2] = medals.length;
+
+					// register listener
+					requestAnimationFrame(achievementListener);
+				}
+		}
+
+		/* handle loaded scores */
+		function onScoreboardsLoaded(result) {
+				if (result.success) scoreboards = result.scoreboards;
+		}
+
+		/*
+		* Before we do anything, we need to get a valid Passport session.  If the player
+		* has previously logged in and selected 'remember me', we may have a valid session
+		* already saved locally.
+		*/
+		function initNGSession() {
+				ngio.getValidSession(function() {
+						if (ngio.user) {
+								/* 
+								* If we have a saved session, and it has not expired, 
+								* we will also have a user object we can access.
+								* We can go ahead and run our onLoggedIn handler here.
+								*/
+								onLoggedIn();
+						} else {
+								/*
+								* If we didn't have a saved session, or it has expired
+								* we should have been given a new one at this point.
+								* This is where you would draw a 'sign in' button and
+								* have it execute the following requestLogin function.
+								*/
+						}
+
+				});
+		}
+
 		var p8_buttons_hash = -1;
 		function p8_update_button_icons()
 		{
@@ -115,8 +278,6 @@
 			}
 			requestAnimationFrame(p8_update_button_icons);
 		}
-	
-	
 	
 		function abs(x)
 		{
@@ -516,7 +677,7 @@
 	
 	
 			// install touch events. These also serve to block scrolling / pinching / zooming on phones when p8_is_running
-				// moved event.preventDefault(); calls into pico8_buttons_event() (want to let top buttons pass through)
+			// moved event.preventDefault(); calls into pico8_buttons_event() (want to let top buttons pass through)
 			addEventListener("touchstart", function(event){ pico8_buttons_event(event, 0); }, {passive: false});
 			addEventListener("touchmove",  function(event){ pico8_buttons_event(event, 1); }, {passive: false});
 			addEventListener("touchend",   function(event){ pico8_buttons_event(event, 2); }, {passive: false});
@@ -538,6 +699,9 @@
 				});
 			}
 			
+			// init Newgrounds API
+			initNGSession();
+
 			// load and run script
 			e = document.createElement("script");
 			p8_script = e;
@@ -626,8 +790,8 @@
 				if (!p8_is_running) return;
 				if (pico8_state.has_focus == 1) {
 					if(event.keyCode==32) {
-						// gpio pin 3 contains "use" button code
-						pico8_buttons[0] |= pico8_gpio[3];
+						// gpio pin 0 contains "use" button code
+						pico8_buttons[0] |= pico8_gpio[0];
 					}
 
 					if ([37, 38, 39, 40, 77, 82, 80, 9].indexOf(event.keyCode) > -1)       // block cursors, M R P, tab
@@ -642,7 +806,7 @@
 				if (!p8_is_running) return;
 				if (pico8_state.has_focus == 1)
 					if(event.keyCode==32) {
-						pico8_buttons[0] &= ~pico8_gpio[3];
+						pico8_buttons[0] &= ~pico8_gpio[0];
 						if (event.preventDefault) event.preventDefault();
 					}
 			},{passive: false});
@@ -808,7 +972,7 @@
 					</canvas>
 					<div class=p8_menu_buttons id="p8_menu_buttons" style="margin-left:10px;">
 						<!-- triggers pico8 native gif capture -->
-						<div class="p8_menu_button" style="position:absolute; bottom:165px" id="p8b_snap" onmouseup="pico8_gpio[3]=1;"></div>
+						<div class="p8_menu_button" style="position:absolute; bottom:165px" id="p8b_snap" onmouseup="pico8_gpio[1]=1;"></div>
 						<div class="p8_menu_button" style="position:absolute; bottom:125px" id="p8b_controls" onClick="p8_give_focus(); Module.pico8ToggleControlMenu();"></div>					
 						<div class="p8_menu_button" style="position:absolute; bottom:90px" id="p8b_pause" onClick="p8_give_focus(); Module.pico8TogglePaused(); p8_update_layout_hash = -22;"></div>
 						<div class="p8_menu_button" style="position:absolute; bottom:55px" id="p8b_sound" onClick="p8_give_focus(); p8_create_audio_context(); Module.pico8ToggleSound();"></div>

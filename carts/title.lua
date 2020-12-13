@@ -1,6 +1,49 @@
 -- background menu
 local snd="36530600324c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060100003e0c3fa445d819c0158b1589158515841583158215811381138003800380538000000000000000000000000000000000000000000000000000000000000000000301000"
 
+local leaderboard_pins,medals,leaderboard={
+  victory1=3,
+  victory2=4,
+  victory3=5,
+  victory4=6,  
+  map=7,
+  kills=8,
+  time=9,
+  -- todo: generate from mapinfo?
+  secrets1=13,
+  secrets2=14,
+  secrets3=15,
+  secrets4=16,
+  secrets5=17,
+  -- no secrets
+  secrets6=18,
+  -- total time
+  total_time=19,
+  -- todo: generate from mapinfo?
+  punch1=23,
+  punch2=24,
+  punch2=25,
+  punch2=26,
+  punch2=27,
+  punch2=28
+},{}
+
+function leaderboard_pack_fixed(key,value)
+  -- export a 16:16 number
+  poke4(0x5f80+leaderboard_pins[key],value)
+end
+
+function update_map_leaderboard(skill,id,level_time,total_time,kills,perfect_kills,perfect_secret)
+  -- update leaderboard (if any)
+  poke(0x5f80+leaderboard_pins.map,id)
+  -- assumes number of kills < 255!
+  poke(0x5f80+leaderboard_pins.kills,kills)
+  leaderboard_pack_fixed("time",level_time)
+  --
+  poke(0x5f80+leaderboard_pins["secrets"..id],perfect_secret and 1 or 0)
+  leaderboard_pack_fixed("total_time",total_time or 0)
+end
+
 -- supports player 1 or player 2 input
 local _btnp=btnp
 function btnp(b)
@@ -27,7 +70,6 @@ function draw_gfx(src)
   spr(0,0,offset,16,16)
 end
 
-
 -- game states
 function next_state(fn,...)
   local u,d,i=fn(...)
@@ -41,7 +83,17 @@ function next_state(fn,...)
     u()
         
     -- gif capture handling
-    if(peek(0x5f83)==1) poke(0x5f83,0) extcmd("video") 
+    if(peek(0x5f81)==1) poke(0x5f81,0) extcmd("video") 
+
+    -- leaderboard?
+    if not leaderboard and peek(0x5f82)>0 then
+      -- medals status
+      for i=0,peek(0x5f82)-1 do
+        medals[i]=peek(0x5f83+i)
+      end
+      -- enable
+      leaderboard=true
+    end
   end
 end
 
@@ -50,6 +102,13 @@ function start_state()
   local ttl=300 
   -- reset saved state
   dset(0,-1)
+  -- reserved:
+  -- 1-6: level time
+  for i=1,#_maps_group do
+    dset(i,0)
+  end
+  -- clear gpio (for leaderboard)
+  memset(0x5f83,0,32)
 
   return
     -- update
@@ -67,13 +126,13 @@ function start_state()
       printb("@fsouchu",2,121,vcol(4))
       printb("@gamecactus",83,121,vcol(4))
 
+      -- display leaderboard activation
+      if(leaderboard) printb("★",1,1,vcol(14),vcol(13))
+
       pal(title_gfx.pal,1)
     end,
     -- init
     function()
-      -- reset any bitplane masking
-      poke(0x5f5e,0xff)
-
       unpack_gfx(title_gfx)
     end  
 end
@@ -225,6 +284,10 @@ function stats_state(skill,id,level_time,kills,monsters,secrets,all_secrets)
     all_secrets>0 and "secrets: "..secrets.."/"..all_secrets or nil
   }
 
+  -- record per level play time
+  dset(id,level_time)
+  update_map_leaderboard(skill,id,level_time,nil,kills,kills==monsters,secrets==all_secrets)
+
   return
     function()
       if ttl>600 or btnp(4) or btnp(5) then
@@ -290,9 +353,21 @@ function launch_state(skill,id,level_time,kills,secrets)
     end
 end
 
-
-function credits_state()  
+function credits_state(skill,id,level_time,kills,monsters,secrets,all_secrets)  
   local ttl,t,creditsi=0,{},0
+
+  -- update leaderboard (if any)
+  poke(0x5f83+leaderboard_pins["victory"..skill],1)
+
+  local total_time=level_time
+  for i=1,id-1 do
+    local t=dget(i)
+    -- not a full run?
+    if(t==0) total_time=nil break
+    total_time+=t
+  end
+  update_map_leaderboard(skill,id,level_time,total_time,kills,kills==monsters,secrets==all_secrets)
+
   return
     -- update
     function()
@@ -393,7 +468,7 @@ function switch_scheme(scheme)
   dset(38,s.btnup)
 
   -- export via gpio
-  poke(0x5f83,s.space)
+  poke(0x5f80,s.space)
 end
 
 function _init()
@@ -427,7 +502,7 @@ function _init()
     -- 3: retry
     {slicefade_state,launch_state,skill,mapid},    
     -- 4: end game
-    {fadetoblack_state,credits_state}
+    {fadetoblack_state,credits_state,skill,mapid,level_time,kills,monsters,secrets,_secrets[mapid]}
   }
 
   -- wait time before launching (15 frames when loading from menu to prevent audio from getting cut too short)
