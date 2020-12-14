@@ -139,23 +139,64 @@ end
 
 function menu_state()
   local mouse_ttl,mouse_x,mouse_y=0,0,0
-  local menus,menu_i,anm_ttl={
-    {"wHICH ePISODE?",_maps_label,sel=1,max=1},
-    {"sELECT sKILL lEVEL",
-    {
-      "i AM TOO YOUNG TO DIE",
-      "hEY, NOT TOO ROUGH",
-      "hURT ME PLENTY",
-      "uLTRA-vIOLENCE"
-    },sel=2,max=2}},1,0
+  local anm_ttl,menus=0
+  menus={
+    select={
+      title="sELECT",
+      entries={"ePISODES","cONTROLS"},
+      sel=1,
+      max=2,
+      next=function(menus,sel)
+        if(sel==1) return menus.levels
+        return menus.controls
+      end
+    },
+    controls={
+      title="sELECT cONTROL sCHEME",
+      entries={
+        "esdf+⬅️⬆️⬇️➡️\nfire\023❎ use\023🅾️",
+        "esdf+⬅️➡️\nfire\023⬆️ use\023⬇️"},
+      height=14,
+      sel=1,
+      max=2,
+      back="select",
+      next=function(menus,sel)
+        switch_scheme(sel-1)
+        return menus.select
+      end
+    },    
+    levels={
+      title="wHICH ePISODE?",
+      entries=_maps_label,
+      sel=1,
+      max=1,
+      back="select",
+      next="skills"
+    },
+    skills={
+      title="sELECT sKILL lEVEL",
+      entries={
+        "i AM TOO YOUNG TO DIE",
+        "hEY, NOT TOO ROUGH",
+        "hURT ME PLENTY",
+        "uLTRA-vIOLENCE"
+      },
+      sel=2,
+      max=4,
+      back="levels",
+      next=function(menus)
+        next_state(launch_state,menus.skills.sel,menus.levels.sel)     
+      end}
+    },0
 
   -- read max level reached
   local max_map_id=dget(32)
   if(max_map_id>#_maps_label) max_map_id=#_maps_label dset(32,max_map_id)
   if(max_map_id<=0) max_map_id=1 dset(32,max_map_id)
 
-  menus[1].max=max_map_id
-  menus[2].max=#menus[2][2]
+  menus.levels.max=max_map_id
+
+  local active_menu=menus.select
 
   return
     function()
@@ -167,50 +208,54 @@ function menu_state()
       end
       if mouse_ttl>0 then
         mouse_ttl-=1
-        -- reset control scheme if using mouse
-        switch_scheme(0)
       end
 
       anm_ttl=(anm_ttl+1)%48
-      if menu_i>0 then
-        local active_sel=menus[menu_i].sel
-        if mouse_ttl>0 then
-          local prev_sel=active_sel
-          for i=1,#menus[menu_i][2] do
-            if i<=menus[menu_i].max and mouse_y>69+i*8 and mouse_y<=75+i*8 then
-              active_sel=i
-            end
-          end   
-          if(prev_sel!=active_sel) sfx(0)
-        else
-          if btnp(2) then
-            active_sel-=1
-            sfx(0)
+      local active_sel,height=active_menu.sel,active_menu.height or 8
+      if mouse_ttl>0 then
+        local prev_sel=active_sel
+        for i=1,#active_menu.entries do
+          if i<=active_menu.max and mouse_y>69+i*height and mouse_y<=75+i*height then
+            active_sel=i
           end
-          if btnp(3) then
-            active_sel+=1
-            sfx(0)
-          end
-          -- unlocked?
-          active_sel=mid(active_sel,1,menus[menu_i].max)
+        end   
+        if(prev_sel!=active_sel) sfx(0)
+      else
+        if btnp(2) then
+          active_sel-=1
+          sfx(0)
         end
-        menus[menu_i].sel=active_sel
+        if btnp(3) then
+          active_sel+=1
+          sfx(0)
+        end
+        -- unlocked?
+        active_sel=mid(active_sel,1,active_menu.max)
       end
+      active_menu.sel=active_sel
 
       if btnp(🅾️) then
-        if(menu_i>1)sfx(0)
-        menu_i=max(1,menu_i-1)
-      elseif btnp(❎) then
-        if(menu_i>0)sfx(1)
-        menu_i+=1
-        if menu_i>#menus then
-          next_state(launch_state,menus[2].sel,menus[1].sel)
+        -- cancel
+        if active_menu.back then
+          sfx(0)
+          active_menu=menus[active_menu.back]        
         end
+      elseif btnp(❎) then
+        if active_menu.next then
+          sfx(1)
+          local next_menu=menus[active_menu.next]
+          if next_menu then
+            active_menu=next_menu
+          else
+            -- function?
+            active_menu=active_menu.next(menus,active_sel)
+          end
+        end        
       end
     end,
     function()
       -- exit early because state will have been change to launch_state
-      if (menu_i>#menus)return
+      if (not active_menu)return
 
       cls()
       draw_gfx(title_gfx)
@@ -222,25 +267,26 @@ function menu_state()
         pal(vcol(i),sget(112+i,128-11))
         --pset(i,0,i)
       end
+      local height=active_menu.height or 8
       palt(0,false)
-      sspr(12,52,104,15+#menus[menu_i][2]*8,12,64)
+      sspr(12,52,104,15+#active_menu.entries*height,12,64)
       pal()
       
       -- title
-      printb(menus[menu_i][1],63-#menus[menu_i][1]*2,67,vcol(14))
+      printb(active_menu.title,63-#active_menu.title*2,67,vcol(14))
 
       -- selection marker
-      rectfill(18,68+menus[menu_i].sel*8,113,75+menus[menu_i].sel*8,vcol(2))
+      rectfill(18,76+(active_menu.sel-1)*height,113,75+active_menu.sel*height,vcol(2))
       palt(vcol(0),false)
       palt(vcol(4),true)
-      sspr(anm_ttl\12*10,116,11,12,14,65+menus[menu_i].sel*8)
+      sspr(anm_ttl\12*10,116,11,12,14,74+(active_menu.sel-1)*height)
       palt()
 
       -- menu items
-      for i=1,#menus[menu_i][2] do
-        local s=menus[menu_i][2][i]
-        if(i>menus[menu_i].max) s=masked(s)
-        printb(s,28,69+i*8,i<=menus[menu_i].max and vcol(4) or vcol(3))
+      for i=1,#active_menu.entries do
+        local s=active_menu.entries[i]
+        if(i>active_menu.max) s=masked(s)
+        printb(s,28,77+(i-1)*height,i<=active_menu.max and vcol(4) or vcol(3))
       end
       
       if(mouse_ttl>0) palt(vcol(4),true) sspr(41,116,10,10,mouse_x,mouse_y) palt()
@@ -311,7 +357,7 @@ function stats_state(skill,id,level_time,kills,monsters,secrets,all_secrets)
     end
 end
 
-function launch_state(skill,id,level_time,kills,secrets)
+function launch_state(skill,id)
   -- record max level reached so far
   if(id>dget(32)) dset(32,id)
   return
@@ -451,15 +497,13 @@ function slicefade_state(...)
       memcpy(0x0,0x6000,8192)
     end
 end
-local _scheme=0
+
 function switch_scheme(scheme)
   local scheme_help={
     {caption="keyboard mode 1",btnfire=❎,btnuse=🅾️,btndown=⬇️,btnup=⬆️,space=0x10},
     {caption="keyboard mode 2",btnfire=⬆️,btnuse=⬇️,btndown=7,btnup=7,space=0x8}
   }
-  _scheme=scheme or ((_scheme+1)%2)
-  local s=scheme_help[_scheme+1]
-  menuitem(1,s.caption,switch_scheme)
+  local s=scheme_help[scheme+1]
   -- save scheme
   dset(34,_scheme)
   dset(35,s.btnfire)
