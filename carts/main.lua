@@ -993,7 +993,7 @@ function attach_plyr(thing,actor)
           -- o: fire
           -- direct mouse input?
           if stat(38)!=0 then
-            da+=stat(38)/8
+            da+=stat(38)/_mouse_acc
             daf=0.2
           else
             if btn(🅾️) then
@@ -1330,7 +1330,7 @@ function _init()
   local p=split(stat(6))
   _skill,_map_id=tonum(p[1]) or 2,tonum(p[2]) or 1
   -- sky texture + load keyboard control mapping
-  _sky_height,_sky_offset,_btnfire,_btnuse,_btndown,_btnup=_maps_sky[_map_id*2-1],_maps_sky[_map_id*2],dget(35),dget(36),dget(37),dget(38)
+  _sky_height,_sky_offset,_btnfire,_btnuse,_btndown,_btnup,_mouse_acc=_maps_sky[_map_id*2-1],_maps_sky[_map_id*2],dget(35),dget(36),dget(37),dget(38),dget(39)
   -- skybox fill pattern
   fillp(0xaaaa)
 

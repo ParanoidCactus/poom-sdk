@@ -1,5 +1,9 @@
 -- background menu
 local snd="36530600324c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060100003e0c3fa445d819c0158b1589158515841583158215811381138003800380538000000000000000000000000000000000000000000000000000000000000000000301000"
+local schemes={
+  {caption="esdf+⬅️⬆️⬇️➡️\nfire\023❎ use\023🅾️",btnfire=❎,btnuse=🅾️,btndown=⬇️,btnup=⬆️,space=0x10},
+  {caption="esdf+⬅️➡️\nfire\023⬆️ use\023⬇️",btnfire=⬆️,btnuse=⬇️,btndown=7,btnup=7,space=0x8}
+}
 
 local leaderboard_pins,medals,leaderboard={
   victory1=3,
@@ -103,7 +107,9 @@ function start_state()
   -- reset saved state
   dset(0,-1)
   -- reserved:
-  -- 1-6: level time
+  -- 0: save
+  -- 1-13: health+armor+weapons+ammo
+  -- 17-23: level time
   for i=1,#_maps_group do
     dset(16+i,0)
   end
@@ -140,10 +146,13 @@ end
 function menu_state()
   local mouse_ttl,mouse_x,mouse_y=0,0,0
   local anm_ttl,menus=0
+  -- restore mouse acceleration
+  local mouse_acc,keyboard_mode=mid(dget(39)\4,1,8),mid(dget(34),0,1)
+
   menus={
     select={
       title="sELECT",
-      entries={"ePISODES","cONTROLS"},
+      entries={"nEW gAME","cONTROLS"},
       sel=1,
       max=2,
       next=function(menus,sel)
@@ -152,17 +161,41 @@ function menu_state()
       end
     },
     controls={
-      title="sELECT cONTROL sCHEME",
+      title="cONTROL oPTIONS",
       entries={
-        "esdf+⬅️⬆️⬇️➡️\nfire\023❎ use\023🅾️",
-        "esdf+⬅️➡️\nfire\023⬆️ use\023⬇️"},
+        function()
+          if mouse_ttl>0 then
+            return "esdf+mouse:\nfire\023lmb use\023rmb"
+          end
+          return schemes[keyboard_mode+1].caption
+        end,
+        function() 
+          local bar="\nfast"
+          for i=1,8 do
+            if i==mouse_acc then
+              bar=bar.."▮"
+            else
+              bar=bar.."-"
+            end
+          end
+          return "mouse sensitivity"..bar.."slow" end
+      },
       height=14,
       sel=1,
       max=2,
       back="select",
       next=function(menus,sel)
-        switch_scheme(sel-1)
-        return menus.select
+        if sel==1 and mouse_ttl==0 then
+          keyboard_mode+=1
+          if(keyboard_mode>1) keyboard_mode=0
+          switch_scheme(keyboard_mode)        
+        elseif sel==2 then
+          mouse_acc+=1
+          if(mouse_acc>8) mouse_acc=1
+          dset(39,mouse_acc*4)
+        end
+        -- stay on menu
+        return menus.controls
       end
     },    
     levels={
@@ -203,11 +236,12 @@ function menu_state()
       -- mouse?
       if stat(38)!=0 then
         mouse_ttl=30
-        mouse_x=mid(mouse_x+stat(38)/2,0,126)
-        mouse_y=mid(mouse_y+stat(39)/2,0,126)
+        mouse_x=mid(mouse_x+stat(38)/mouse_acc,0,126)
+        mouse_y=mid(mouse_y+stat(39)/mouse_acc,0,126)
       end
       if mouse_ttl>0 then
-        mouse_ttl-=1
+        mouse_ttl-=1        
+        switch_scheme(0)
       end
 
       anm_ttl=(anm_ttl+1)%48
@@ -282,11 +316,22 @@ function menu_state()
       sspr(anm_ttl\12*10,116,11,12,14,74+(active_menu.sel-1)*height)
       palt()
 
-      -- menu items
+      -- menu items      
       for i=1,#active_menu.entries do
         local s=active_menu.entries[i]
+        if(type(s)=="function") s=s()
         if(i>active_menu.max) s=masked(s)
         printb(s,28,77+(i-1)*height,i<=active_menu.max and vcol(4) or vcol(3))
+        local hs=""
+        for j=1,#s do
+          local c=sub(s,j,j)
+          if c=="🅾️" or c=="❎" or c=="⬅️" or c=="⬆️" or c=="⬇️" or c=="➡️" or c=="▮" or c=="\n" then
+            hs=hs..c
+          else
+            hs=hs.." "
+          end
+        end
+        printb(hs,28,77+(i-1)*height,i<=active_menu.max and vcol(13) or vcol(3))
       end
       
       if(mouse_ttl>0) palt(vcol(4),true) sspr(41,116,10,10,mouse_x,mouse_y) palt()
@@ -499,13 +544,9 @@ function slicefade_state(...)
 end
 
 function switch_scheme(scheme)
-  local scheme_help={
-    {caption="keyboard mode 1",btnfire=❎,btnuse=🅾️,btndown=⬇️,btnup=⬆️,space=0x10},
-    {caption="keyboard mode 2",btnfire=⬆️,btnuse=⬇️,btndown=7,btnup=7,space=0x8}
-  }
-  local s=scheme_help[scheme+1]
+  local s=schemes[scheme+1]
   -- save scheme
-  dset(34,_scheme)
+  dset(34,scheme)
   dset(35,s.btnfire)
   dset(36,s.btnuse)
   dset(37,s.btndown)
