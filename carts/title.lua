@@ -561,7 +561,9 @@ function _init()
   poke(0x5f2d, 7)
 
   cartdata(mod_name)
-
+  -- default sensititivity
+  if(dget(39)==0) dset(39,8)
+  
   -- control scheme
   switch_scheme(dget(34))
 
