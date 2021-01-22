@@ -365,20 +365,15 @@ end
 function stats_state(skill,id,level_time,kills,monsters,secrets,all_secrets,ammoused)
   local ttl,msg_ttl,max_msg=0,0,2
   local punch_perfect=kills==monsters and ammoused==0
-  local secret_perfect=secrets==all_secrets
+  local secret_perfect=all_secrets>0 and secrets==all_secrets
   local msgs={
-    "completed:",
-    _maps_label[id],
-    "time: "..time_tostr(level_time),
-    "kills: "..kills.."/"..monsters,
-    all_secrets>0 and "secrets: "..secrets.."/"..all_secrets or nil,
-    punch_perfect and "punch perfect" or nil
+    {txt="completed:"},
+    {txt=_maps_label[id]},
+    {txt="time: "..time_tostr(level_time)},
+    {txt="kills: "..kills.."/"..monsters},
+    all_secrets>0 and {txt="secrets: "..secrets.."/"..all_secrets,unlocked=secret_perfect} or nil,
+    punch_perfect and {txt="punch perfect",unlocked=true} or nil
   }
-  local msg_effects={
-    [5]=secret_perfect,
-    [6]=punch_perfect
-  }
-
   -- record per level play time
   dset(16+id,level_time)
   update_map_leaderboard(skill,id,level_time,nil,kills,kills==monsters,secret_perfect,punch_perfect)
@@ -394,19 +389,23 @@ function stats_state(skill,id,level_time,kills,monsters,secrets,all_secrets,ammo
         sfx(0)
         max_msg+=1
         msg_ttl=0
+        -- skip empty entries
+        if(not msgs[max_msg]) max_msg=min(max_msg+1,#msgs)
       end
     end,
     function()   
       local y=40   
       for i=1,max_msg do
-        local s=msgs[i]
-        local x=63-#s*2
-        printb(s,x,y,15)      
-        if msg_effects[i] then
-          printb("★",x-8,y,rnd()>0.5 and 11 or 10)
-          printb("★",x+#s*4,y,rnd()>0.5 and 11 or 10)
+        if msgs[i] then
+          local s=msgs[i].txt
+          local x=63-#s*2
+          printb(s,x,y,15)      
+          if msgs[i].unlocked then
+            printb("★",x-8,y,rnd()>0.5 and 11 or 10)
+            printb("★",x+#s*4,y,rnd()>0.5 and 11 or 10)
+          end
+          y+=10
         end
-        y+=10
       end
     end
 end
@@ -605,8 +604,7 @@ function _init()
   -- wait time before launching (15 frames when loading from menu to prevent audio from getting cut too short)
   launch_ttl=(state==2 or state==3) and 1 or 15
 
-  next_state(unpack(states[state]))    
-  --next_state(stats_state,1,1,516,8,8,1,2,0)
+  next_state(unpack(states[state]))      
 end
 
 -->8
