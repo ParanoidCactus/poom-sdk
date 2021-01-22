@@ -1,5 +1,5 @@
 -- globals
-local _slow,_ambientlight,_drag,_ammo_factor,_intersectid,_onoff_textures,_transparent_textures,_futures,_things,_btns,_bsp,_cam,_plyr,_sprite_cache,_actors,_wp_hud,_msg=0,0,0,1,0,{[0]=0},{},{},{},{}
+local _ammoused,_slow,_ambientlight,_drag,_ammo_factor,_intersectid,_onoff_textures,_transparent_textures,_futures,_things,_btns,_bsp,_cam,_plyr,_sprite_cache,_actors,_wp_hud,_msg=0,0,0,0,1,0,{[0]=0},{},{},{},{}
 
 --local k_far,k_near=0,2
 --local k_right,k_left=4,8
@@ -1497,7 +1497,7 @@ function unpack_special(sectors)
       do_async(function()
         wait_async(delay)
         -- record level completion time + send stats
-        load(title_cart,nil,_skill..",".._map_id..",2,"..t..",".._kills..",".._monsters..",".._secrets)
+        load(title_cart,nil,_skill..",".._map_id..",2,"..t..",".._kills..",".._monsters..",".._secrets..",".._ammoused)
       end)
     end
   end
@@ -1570,7 +1570,7 @@ function unpack_actors()
           -- handle "fist" (eg weapon without ammotype)
           if(ammotype) newqty=inventory[ammotype]-item.ammouse
           if newqty>=0 then
-            if(ammotype) inventory[ammotype]=newqty
+            if(ammotype) inventory[ammotype]=newqty _ammoused+=item.ammouse
             -- play attack sound
             if(item.attacksound) sfx(item.attacksound)
             -- drag?
