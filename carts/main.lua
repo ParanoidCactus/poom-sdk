@@ -76,12 +76,12 @@ end
 function vspr(frame,sx,sy,scale,flipx)
   -- faster equivalent to: palt(0,false)
   poke(0x5f00,0)
-  local xscale,w,xoffset,yoffset,tc,tiles=scale,unpack(frame)
-  palt(tc,true)
+  local xscale,w,xoffset=scale,frame[1],frame[2]
+  palt(frame[4],true)
   if(flipx) xoffset,xscale=1-xoffset,-scale
   sx-=xoffset*scale
-  sy-=yoffset*scale
-	for i,tile in pairs(tiles) do
+  sy-=frame[3]*scale
+	for i,tile in pairs(frame[5]) do
     local dx,dy,ssx,ssy=sx+(i%w)*xscale,sy+(i\w)*scale,_sprite_cache:use(tile)
     -- scale sub-pixel fix 
     sspr(ssx,ssy,16,16,dx,dy,scale+dx%1,scale+dy%1,flipx)
@@ -210,14 +210,13 @@ function polyfill(v,xoffset,yoffset,tex,light)
     end
   end
 
-  local r0,spans,ca,sa,cx,cy,cz,pal0=v[#v],{},_cam.u,_cam.v,(_plyr[1]>>4)+xoffset,(-_cam.m[4]-yoffset)<<3,_plyr[2]>>4
-  local x0,w0=r0.x,r0.w
-  local y0,maxlight=r0.y-yoffset*w0,light\0.066666
-  for i,v1 in ipairs(v) do
-    local x1,w1=v1.x,v1.w
-    local y1=v1.y-yoffset*w1
-    local _y1=y1
-    if(y0>y1) x1=x0 y1=y0 w1=w0 x0=v1.x y0=_y1 w0=v1.w
+  local nverts,spans,ca,sa,cx,cy,cz,pal0=#v,{},_cam.u,_cam.v,(_plyr[1]>>4)+xoffset,(-_cam.m[4]-yoffset)<<3,_plyr[2]>>4
+  local maxlight=light\0.066666
+  for i,r0 in pairs(v) do
+    local v1=v[i%nverts+1] 
+    local x0,w0,x1,w1=r0.x,r0.w,v1.x,v1.w
+    local y0,y1=r0.y-yoffset*w0,v1.y-yoffset*w1
+    if(y0>y1) x1=x0 w1=w0 x0=v1.x y0,y1=y1,y0 w0=v1.w
     local dy=y1-y0
     local cy0,dx,dw=y0\1+1,(x1-x0)/dy,(w1-w0)/dy
     local sy=cy0-y0
@@ -251,9 +250,6 @@ function polyfill(v,xoffset,yoffset,tex,light)
       x0+=dx
       w0+=dw
     end		
-    x0=v1.x
-    y0=_y1
-    w0=v1.w
   end  
 end
 
@@ -335,16 +331,18 @@ function draw_flats(v_cache,segs)
 
       -- draw walls
       -- get heights
-      local v0,top,bottom=verts[#verts],ceil>>4,floor>>4
-      local x0,y0,w0,maxlight=v0.x,v0.y,v0.w,light\0.066666
-      for i,v1 in ipairs(verts) do
-        local seg,x1,y1,w1=v0.seg,v1.x,v1.y,v1.w
-        local _x1,ldef=x1,seg.line
+      local nverts,top,bottom=#verts,ceil>>4,floor>>4
+      local maxlight=light\0.066666
+      for i,v0 in ipairs(verts) do
+        local v1=verts[i%nverts+1]
+        local seg,x0,y0,w0,x1,y1,w1=v0.seg,v0.x,v0.y,v0.w,v1.x,v1.y,v1.w
+        local ldef=seg.line
         -- logical split or wall?
         -- front facing?
         if x0<x1 and ldef then
           -- peg bottom?
-          local _,toptex,midtex,bottomtex=unpack(ldef[seg.side])
+          local linedef=ldef[seg.side]
+          local toptex,midtex,bottomtex=linedef[2],linedef[3],linedef[4]
           -- no need to draw untextured walls
           if toptex|midtex|bottomtex!=0 then
             -- get other side (if any)
@@ -420,10 +418,6 @@ function draw_flats(v_cache,segs)
             end
           end
         end
-        v0=v1
-        x0=_x1
-        y0=y1
-        w0=w1
       end
 
       -- draw things (if any) in this convex space
@@ -479,12 +473,12 @@ function draw_flats(v_cache,segs)
       end
       -- things are sorted, draw them
       for _,head in ipairs(things) do
-        local w0,thing,x0,y0=unpack(head)
+        local w0,thing=head[1],head[2]
         -- get image from current state
         local frame=thing.state
-        local side,_,flipx,bright,sides=0,unpack(frame)
+        local side,flipx,sides=0,frame[2],frame[4]
         -- use frame brightness level
-        local pal1=bright and 8 or (light*min(15,w0<<5))\1
+        local pal1=frame[3] and 8 or (light*min(15,w0<<5))\1
         if(pal0!=pal1) memcpy(0x5f00,0x4300|pal1<<4,16) pal0=pal1            
         -- pick side (if any)
         if sides>1 then
@@ -495,7 +489,7 @@ function draw_flats(v_cache,segs)
         else
           flipx=nil
         end
-        vspr(frame[side+5],x0,y0,w0<<5,flipx)
+        vspr(frame[side+5],head[3],head[4],w0<<5,flipx)
         
         -- thing:draw_vm(x0,y0)
         -- print(thing.angle,x0,y0,8)
@@ -1215,8 +1209,9 @@ function play_state()
         if(ax>az) code|=4
         if(-ax>az) code|=8
         outcode&=code
+        -- early exit?
+        if(outcode==0) return true
       end
-      return outcode==0
     end
   }
 
