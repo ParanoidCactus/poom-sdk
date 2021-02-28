@@ -974,15 +974,15 @@ function attach_plyr(thing,actor)
             end
           end
         else
-          -- cursor: fwd+rotate
-          -- cursor+x: weapon switch+rotate
-          -- wasd: fwd+strafe
-          -- o: fire
           -- direct mouse input?
           if stat(38)!=0 then
             da+=stat(38)/_mouse_acc
             daf=0.2
           else
+            -- cursor: fwd+rotate
+            -- cursor+x: weapon switch+rotate
+            -- wasd: fwd+strafe
+            -- o: fire
             if btn(🅾️) then
               if(_btns[0]) dx=1
               if(_btns[1]) dx=-1
